@@ -3,6 +3,12 @@
 **Date:** YYYY-MM-DD
 **Status:** Draft
 **Slug:** `<slug>`
+**Revision and validation:** [content revision; Approved by human or Validated by
+policy; actor/time/authority/criteria/outcome]
+**Work context:** [root ID; repository/base/work branch; backend/host/policy;
+method revision and effective preferences reference]
+
+This is a content template; use the selected backend's design field or file.
 
 ## Goal
 
@@ -70,11 +76,12 @@ checks, and anything that needs special setup.]
 
 ## Resolved Questions & Assumptions
 
-[Record consequential questions only after the user answers them. An Approved
-design has no unanswered questions; an unanswered consequential question keeps
-the design Draft/Blocked and prevents planning.]
+[Record consequential questions only after the user or established authority
+answers them. An Approved/Validated design has no unanswered questions; an
+unanswered material question keeps the design Draft/Blocked and prevents
+planning.]
 
 - **Question:** [What needed deciding?] **Answer:** [Decision.] **Source:**
-  [User and date.]
-- **Assumption:** [Bounded non-material assumption.] **Evidence:**
-  [Why it is safe to decide.] **Impact if false:** [What changes or blocks.]
+  [User/policy/evidence and date.]
+- **Assumption:** [Bounded non-material assumption.] **Evidence/authority:**
+  [Why it is permitted.] **Impact if false:** [What changes or blocks.]

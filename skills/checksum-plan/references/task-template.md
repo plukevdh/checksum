@@ -5,10 +5,15 @@ depends: []
 deliver: plan
 ---
 
+The frontmatter above is files-backend coordination only. Other backends use
+native status, assignee and dependencies; do not mirror those as shadow truth.
+Store the narrative sections below in the selected backend.
+
 # Task NN: [Outcome, stated as a result]
 
-**Plan:** [../plan.md](../plan.md) · **Design:** [../design.md](../design.md)
+**Plan:** [record reference/revision] · **Design:** [record reference/revision]
 (Global constraints in the plan apply to this task.)
+**Authority/context:** [root ID, repository/base/work branch, scoped run authority]
 
 ## Diagnosis
 
@@ -19,7 +24,7 @@ When applicable, include its complete `### Residual risk` and
 
 ## Containment
 
-[For an approved temporary mitigation: action, risk, rollback, monitoring, removal
+[For an authorized temporary mitigation: action, risk, rollback, monitoring, removal
 condition, explicit owner, and the durable follow-up outside this plan's completion
 set that owns removal. Omit when none.]
 
@@ -57,3 +62,7 @@ Expect: <specific output, count, or exit status>
 task and why. For a permanent defect fix: the exact observed-red command and failing
 result. For containment: the pre/post suppression-check results. If blocked: what
 was tried and what blocks.]
+
+**Review:** [scope/revision, rung/provider/model/provenance, findings/resolutions]
+**Delivery:** [pending/completed actions, hashes/PR URLs, independent merge state]
+**Handoff:** [next phase/action, evidence, budgets used, unresolved risk/block reason]

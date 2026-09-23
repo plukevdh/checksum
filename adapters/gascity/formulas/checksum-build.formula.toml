@@ -1,0 +1,179 @@
+description = """
+Checksum methodology on the GasCity build lifecycle. Requires scoped Beads
+authority; publishing is opt-in.
+
+GasCity provisions the work-branch workspace in `prepare`, drains tasks in it
+(`same-session`) or in per-task branches (`separate`), and repairs review
+findings through the `checksum-review-loop` expansion. `review_fix_formula`
+is kept only for upstream wrapper compatibility and is not dispatched here.
+"""
+formula = "checksum-build"
+version = 1
+contract = "graph.v2"
+extends = ["build-base"]
+target_required = true
+
+[metadata.gc.methodology]
+allowed_drain_policies = ["separate", "same-session"]
+implementation_strategy = "drain"
+interaction_modes = ["autonomous", "headless"]
+review_modes = ["report", "agent"]
+
+[vars.artifact_root]
+description = "Directory for disposable host artifact projections."
+required = true
+[vars.context_path]
+default = ""
+[vars.requirements_path]
+default = ""
+[vars.plan_path]
+default = ""
+[vars.decomposition_path]
+default = ""
+[vars.drain_policy]
+default = "separate"
+[vars.review_mode]
+default = "agent"
+[vars.max_iterations]
+default = "10"
+[vars.push]
+default = "false"
+[vars.open_pr]
+default = "false"
+[vars.interaction_mode]
+default = "autonomous"
+[vars.implementation_target]
+default = "checksum-host.implementer"
+[vars.planning_formula]
+default = "checksum-planning"
+[vars.decomposition_formula]
+default = "checksum-decomposition"
+[vars.implementation_formula]
+default = "checksum-implementation"
+[vars.implementation_item_formula]
+default = "checksum-work-item"
+[vars.code_review_formula]
+default = "checksum-review"
+[vars.review_fix_formula]
+default = "fix-loop-base"
+
+[[steps]]
+id = "prepare"
+title = "Prepare checksum build and work-branch workspace"
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/checksum-build/prepare.md"
+
+[[steps]]
+id = "requirements"
+title = "Design checksum requirements"
+needs = ["prepare"]
+metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.requirements.v1", "gc.build.artifact_path_keys" = "gc.build.requirements_path,gc.var.requirements_path" }
+description_file = "../assets/workflows/build-base/requirements.md"
+[steps.check]
+max_attempts = 3
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
+
+[[steps]]
+id = "plan"
+title = "Plan checksum implementation"
+needs = ["requirements"]
+metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.plan.v1", "gc.build.artifact_path_keys" = "gc.build.plan_path,gc.var.plan_path" }
+description_file = "../assets/workflows/build-base/plan.md"
+[steps.check]
+max_attempts = 3
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
+
+[[steps]]
+id = "plan-review"
+title = "Review checksum plan"
+needs = ["plan"]
+metadata = { "gc.run_target" = "checksum-host.reviewer" }
+description_file = "../assets/workflows/build-base/plan-review.md"
+
+[[steps]]
+id = "decompose"
+title = "Create checksum task beads and implementation convoy"
+needs = ["plan-review"]
+metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.decomposition.v1", "gc.build.artifact_path_keys" = "gc.build.decomposition_path,gc.var.decomposition_path" }
+description_file = "../assets/workflows/checksum-build/decompose.md"
+[steps.check]
+max_attempts = 3
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
+
+[[steps]]
+id = "implement"
+title = "Drain checksum tasks separately"
+needs = ["decompose"]
+condition = "{{drain_policy}} == separate"
+metadata = { "gc.run_target" = "{{implementation_target}}" }
+description_file = "../assets/workflows/build-base/implement.md"
+[steps.drain]
+context = "separate"
+formula = "checksum-work"
+member_access = "exclusive"
+
+[[steps]]
+id = "implement-same-session"
+title = "Drain checksum tasks in one session"
+needs = ["decompose"]
+condition = "{{drain_policy}} == same-session"
+metadata = { "gc.run_target" = "{{implementation_target}}" }
+description_file = "../assets/workflows/build-base/implement-same-session.md"
+[steps.drain]
+context = "shared"
+formula = "checksum-work-item"
+on_item_failure = "skip_remaining"
+member_access = "exclusive"
+[steps.drain.item]
+single_lane = true
+
+[[steps]]
+id = "summarize-implementation"
+title = "Summarize retained checksum evidence"
+needs = ["implement", "implement-same-session"]
+metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.implementation-summary.v1", "gc.build.artifact_path_keys" = "gc.build.implementation_summary_path" }
+description_file = "../assets/workflows/build-base/summarize-implementation.md"
+[steps.check]
+max_attempts = 3
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
+
+[[steps]]
+id = "review"
+title = "Review and repair checksum implementation"
+needs = ["summarize-implementation"]
+metadata = { "gc.run_target" = "checksum-host.reviewer", "gc.build.artifact_schema" = "gc.build.review.v1", "gc.build.artifact_path_keys" = "gc.build.review_report_path" }
+expand = "checksum-review-loop"
+expand_vars = { implementation_target = "{{implementation_target}}" }
+description_file = "../assets/workflows/build-base/review.md"
+
+[[steps]]
+id = "finalize"
+title = "Record checksum build result"
+needs = ["review"]
+metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.final-report.v1", "gc.build.artifact_path_keys" = "gc.build.final_report_path" }
+description_file = "../assets/workflows/build-base/finalize.md"
+[steps.check]
+max_attempts = 3
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
+
+[[steps]]
+id = "publish"
+title = "Finish and optionally deliver checksum work"
+needs = ["finalize"]
+metadata = { "gc.run_target" = "checksum-host.finisher" }
+description_file = "../assets/workflows/checksum-build/publish.md"

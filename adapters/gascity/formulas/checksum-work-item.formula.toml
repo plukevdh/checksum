@@ -1,0 +1,11 @@
+description = "Checksum execution in the host-owned shared drain workspace."
+formula = "checksum-work-item"
+version = 1
+contract = "graph.v2"
+extends = ["do-work-item"]
+target_required = true
+internal = true
+single_lane = true
+
+[vars.implementation_target]
+default = "checksum-host.implementer"

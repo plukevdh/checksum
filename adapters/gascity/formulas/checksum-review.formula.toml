@@ -1,0 +1,26 @@
+description = "Checksum report-only review with actual model provenance and revision-bound evidence."
+formula = "checksum-review"
+version = 1
+contract = "graph.v2"
+extends = ["code-review-base"]
+target_required = false
+internal = true
+mode = "report"
+
+[[steps]]
+id = "validate-context"
+title = "Validate checksum review context"
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/code-review-base/validate-context.md"
+[[steps]]
+id = "write-report"
+title = "Write independent checksum review"
+needs = ["validate-context"]
+metadata = { "gc.run_target" = "checksum-host.reviewer", "gc.build.artifact_schema" = "gc.build.review.v1", "gc.build.artifact_path_keys" = "gc.build.review_report_path,gc.var.report_path" }
+description_file = "../assets/workflows/code-review-base/write-report.md"
+[steps.check]
+max_attempts = 3
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"

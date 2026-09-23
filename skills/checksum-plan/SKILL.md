@@ -1,143 +1,64 @@
 ---
 name: checksum-plan
-description: Write or revise a checksum implementation plan from an approved design. Use when the checksum router selects the plan phase - the design is Approved and no current plan exists.
+description: Translate a current Approved or policy-Validated checksum design into self-contained tasks with spec-derived acceptance checks.
 ---
 
 # Checksum: Plan
 
-The plan translates an approved design into tasks an implementer can execute with
-**zero conversation context** — a future session, a subagent, or the user's teammate.
-Everything they need lives in the plan or the design it links to.
-
-A plan **file** is a full-weight artifact. For light-weight work the same ceremony
-runs in chat — see "Chat plans" at the end — and this skill's shaping and
-acceptance-check rules apply unchanged.
-
-Require preferences, a slug, and an Approved design from the `checksum` router.
-If the design is missing or stale, return to the router. Honor every directive in
-the `## plan` preferences section.
-
-Before writing any plan or task, read the complete design and confirm it has no
-unanswered questions or uncertain assumptions whose answer changes scope,
-behavior, risk, implementation choices, verification, or external effects.
-Status alone is not proof. Return each consequential question to the user one
-at a time, record the answer in a revised design, and obtain renewed design
-approval. Do not copy a question into the plan, turn it into an implementation
+Load the shared [workflow contract](../checksum/references/workflow-contract.md)
+and [authorization](../checksum/references/authorization.md). Require a current
+Approved/Validated design, backend context and effective `plan` preferences.
+Return stale or missing design to the router/host. Before writing any plan or
+task, read the complete design and confirm it has no unanswered questions or
+uncertain assumptions whose answer changes scope, behavior, risk,
+implementation choices, verification or external effects. Status alone is not
+proof. Interactive returns each question to the user (one consequential
+question at a time), records the answer in a revised design and obtains renewed
+approval; PR-gated records Blocked and returns the exact question through the
+host. Do not copy a question into the plan, turn it into an implementation
 step, or let an implementer choose.
 
-## Shape the work
+Plan for an implementer with zero conversation context. Read the touched code
+before choosing file responsibilities, interfaces, task boundaries and order.
+Each task is the smallest independently verifiable outcome; fold scaffolding into
+its consumer. Prefer incremental working states, no speculative abstractions.
 
-Before writing tasks, read the code paths the design touches and decide:
+## Acceptance first
 
-- File responsibilities: which files are created or modified, and what each owns.
-- Interfaces between tasks: exact names, signatures, and types that later tasks
-  consume from earlier ones.
-- Task boundaries: a task is the smallest unit with an independently verifiable
-  outcome. Fold setup and scaffolding into the task that needs them; split only
-  where a reviewer could reject one task while accepting its neighbor.
-- Order: prefer a sequence where the system builds up working and testable at every
-  step, not big-bang integration at the end.
+Derive checks from design success criteria and edge cases before implementation.
+Each names an exact command and expected result; expectations never come from
+running the implementation. Config/docs/generated work gets the narrowest direct
+validator and an explanation of why a unit test is not applicable.
 
-Plan the smallest solution that satisfies the design. No unrequested abstractions,
-no future scaffolding, no drive-by refactors that the design didn't call for.
+Defect tasks carry the complete [diagnosis](../checksum-debug/references/diagnosis.md)
+and regression condition. Include residual-risk, reproduction-exception and
+containment blocks when applicable. Follow-ups live outside the current completion
+set under [lifecycle](../checksum/references/lifecycle.md#durable-operational-follow-up).
+Containment checks prove suppression and an executable rollback, not permanent cure.
 
-## Acceptance checks are the heart of each task
+## Write to the chosen backend
 
-Every task carries acceptance checks **derived from the design's success criteria
-and edge cases — written now, before any implementation exists**. This is where
-testing quality is won:
+Use the semantic sections of [plan-template](references/plan-template.md) and
+[task-template](references/task-template.md). File paths/frontmatter are the files
+mapping only; Beads uses native task coordination, description/design/acceptance
+and notes. Light work is concise but retains the same criteria.
 
-- Expected values come from the design, never from running the implementation later.
-- Each check is an exact command plus its expected result.
-- Cover the design's edge cases for this task, not just the happy path.
-- For non-code work (config, docs, generated files), the check is the narrowest
-  direct validator, with a note on why a unit test doesn't apply.
-- For a defect, copy the checksum-debug
-  [diagnosis contract](../checksum-debug/references/diagnosis.md) and exact
-  regression condition into the task's `## Diagnosis` section. In a light chat
-  plan, include the complete diagnosis block alongside the task and require execute to
-  restate it before editing. If a containment is active, also carry its risk,
-  rollback, monitoring, owner, removal condition, and durable follow-up into
-  `## Containment`; the follow-up must live in a durable tracker outside this
-  plan's completion set — an external issue/ticket or committed project tracking
-  entry, as defined by the router's
-  [lifecycle](../checksum/references/lifecycle.md#durable-operational-follow-up) —
-  so active containment does not deadlock finalize. Ensure the follow-up entry
-  contains the lifecycle's required resume state; a bare link is incomplete. Put
-  the same containment block in a light chat plan. A correction pursued at probable
-  or unknown confidence similarly carries the diagnosis contract's `### Residual
-  risk` section and a durable follow-up. A blocked reproduction carries its
-  `### Reproduction exception` section. A containment task's acceptance checks must
-  prove that the affected behavior is restored and that its rollback procedure is
-  executable.
+- Copy global constraints verbatim from design.
+- Specify files, responsibilities, exact consumed/produced interfaces, failure
+  behavior, acceptance commands, steps and full verification.
+- List only real dependencies (consumed interfaces or overlapping edits), no cycles
+  or missing IDs. Keep independent tasks parallelizable for the scheduler.
+- `deliver: plan` is default; `commit`/`pr` requests scoped finish. Stacks need
+  independently reviewable units and authorized source/base branches.
+- Write contracts, not implementation bodies. Exact assertions/schemas/signatures
+  are appropriate; “TBD”, “similar to task 2” and vague checks are not.
+- Provide a completion condition with measurable results, exact proof and scope.
 
-## Write the plan
+## Validate and hand off
 
-Write into `<artifacts dir>/YYYY-MM-DD-<slug>/`:
-
-- `plan.md` — the overview — from [references/plan-template.md](references/plan-template.md)
-  (or the preferences `template:` override): status, goal, global constraints,
-  completion condition, and the task index.
-- `tasks/NN-<task-slug>.md` — one file per task — from
-  [references/task-template.md](references/task-template.md). Separate files let
-  agents claim tasks independently and let delivery happen per task.
-
-Task frontmatter carries the coordination state (semantics in the router's
-`references/lifecycle.md`): `status: pending`, `depends` listing only **real**
-ordering constraints — an interface consumed, a file both would edit — so that
-everything else stays parallelizable, and `deliver`:
-
-- `plan` (default) — delivered together at finish.
-- `commit` — task-scoped commit when done; the flag records intent, but task
-  finalize still requires the user's local-review approval before committing.
-- `pr` — stacked branch/PR per task (GitHub stacking); each push still gets a
-  per-delivery user go. Flag `pr` only when tasks are genuinely independently
-  reviewable, and say so when presenting the plan for approval.
-
-Rules that make plans executable:
-
-- **Contract-heavy, not code-heavy.** The plan pins down everything two tasks (or
-  the finish phase) must agree on: exact names, signatures, types, file
-  responsibilities, failure behavior, check commands with expected output. It does
-  **not** write implementation bodies — that duplicates the code once as unverified
-  pseudo-implementation and once for real, and the plan copy goes stale on first
-  contact with reality. Use code blocks only where the exact content *is* the
-  contract: a test's assertions, a schema, a config fragment, a public signature.
-  Describe everything else by outcome and constraint, and let execution write it
-  with compiler and test feedback.
-- **No placeholders.** "TBD", "add error handling", "similar to Task 2", or an
-  acceptance check without a command and expected result are plan failures.
-  Contract-heavy is not vague — every name an implementer needs is written down.
-- **Global constraints copied verbatim** from the design — every task implicitly
-  includes them.
-- **A Completion Condition section** (see template): the machine-checkable statement
-  of done, phrased so a goal evaluator reading only terminal output can judge it.
-
-## Self-review, then the gate
-
-Check the plan against the design with fresh eyes and fix inline:
-
-1. Every design requirement and edge case maps to a task — list any gaps.
-2. Placeholder scan (patterns above).
-3. Interface consistency — names and signatures used in later tasks match where
-   earlier tasks defined them.
-4. Every check command can actually prove its expected result.
-5. Dependency sanity — no cycles, no `depends` entry naming a missing task, no
-   fabricated dependencies that serialize parallelizable work, and every `pr`-
-   flagged task genuinely reviewable on its own.
-
-Set `**Status:** Draft`, show the user the path, ask for review, and **stop**.
-On an explicit yes, set `**Status:** Approved` and report back to the router.
-
-Never commit the plan or design files — artifacts stay out of changesets unless the
-user explicitly asks (router `references/lifecycle.md`).
-
-## Chat plans (light weight)
-
-When the router classified the task as light, produce the plan in chat instead of a
-file: the task list with files, interfaces where they matter, acceptance checks
-(same derivation rules — expected values from the design/root cause, written before
-implementation), and the completion condition. Keep it proportionate — a two-task
-fix needs two tasks, not template headings. One explicit yes approves it; execution
-tracks the tasks in the host's task tracker. If drafting the chat plan reveals more
-scope than light warrants, say so and upgrade to full with artifacts.
+Trace every design requirement/edge case to a task, check interface consistency,
+dependency sanity, check sufficiency and granular delivery boundaries.
+Interactive presents Draft and waits for explicit approval, then records Approved.
+PR-gated records criteria, revision, actor and policy as Validated and proceeds.
+Use the shared handoff; planning grants no extra delivery authority. Temporary file
+artifacts stay out of commits unless explicitly requested.

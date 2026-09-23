@@ -16,10 +16,14 @@ Before any claim of passing, fixed, done, or working:
 
 | Design success criterion | Implementation evidence | Command | Result |
 |---|---|---|---|
-| [exact criterion from design.md] | [file / behavior / diff hunk] | `fresh command` | exit status + counts |
+| [exact criterion from design record] | [file / behavior / diff hunk] | `fresh command` | exit status + counts |
 
 Every success criterion gets a row. A criterion with no provable row is unmet —
 report the gap, don't paper over it.
+
+Retain the matrix with tested revision in the selected backend's result/review
+record and durable delivery package. Policy validation is not human acceptance;
+an open PR proves neither merge nor deployment.
 
 ## Freshness and sufficiency
 

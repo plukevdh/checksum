@@ -1,0 +1,3 @@
+description = "Checksum finish checks and explicitly authorized PR delivery"
+scope = "rig"
+fallback = true

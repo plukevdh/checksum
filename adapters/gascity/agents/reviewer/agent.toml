@@ -1,0 +1,3 @@
+description = "Checksum independent, report-only policy reviewer"
+scope = "rig"
+fallback = true
