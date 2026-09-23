@@ -15,6 +15,12 @@ remote, repository, base, branch, completion set, or authority from a role name.
 NEVER merge, write the default branch, deploy, force-push, delete work state,
 or perform unrelated external effects.
 
+Work only in `checksum.work_dir` on `checksum.branch`. Its HEAD must be the
+revision the review loop approved (`gc.build.code_review_subject_revision`),
+which must descend from `checksum.integrated_revision`, with a clean tree;
+otherwise block with `gc.failure_class=checksum_delivery_blocked`. Finish
+verifies that integration; it never integrates or rebases here.
+
 Before delivery, revalidate checksum policy against the current repository and
 work branch: design/plan validation, task acceptance and native dependencies,
 complete retained verification evidence, cross-model review with actual model

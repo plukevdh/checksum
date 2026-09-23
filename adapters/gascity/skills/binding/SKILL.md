@@ -78,7 +78,8 @@ authority exceptions/unknown decisions block instead of fabricating consent.
 | implement / implement-item / apply-findings | `checksum.checksum-execute`; assigned task or review findings only, tests and verification evidence in that task's notes. |
 | unexpected failure / uncertain cause | `checksum.checksum-debug`; retained diagnosis before fixes, bounded attempts, honest blocker on exhaustion. |
 | review / write-report / independent-review | Shared execute/finish review contract; report-only, cross-model and exact-revision evidence. No reviewer fixes. |
-| summarize / summarize-implementation / finalize | Aggregate retained task/evidence records; no source changes or delivery. |
+| integrate | Host integration: rebase + fast-forward closed task branches into the work branch in dependency order, integrated verification, `checksum.integrated_revision`. No conflict resolution, no push. |
+| summarize / summarize-implementation / finalize | Aggregate retained task/evidence records; cite `checksum.integrated_revision` and members' `checksum.integrated` SHAs, not pre-rebase item-summary SHAs. No source changes or delivery. |
 | publish | `checksum.checksum-finish` checks and explicit branch/PR delivery only, as narrowed by launch flags. |
 
 The inherited finalize stage writes a host result projection, NOT portable root
@@ -99,16 +100,55 @@ the inherited stage body says it may close with unresolved findings.
 
 GasCity alone assigns work, owns workspace lifecycle, drains convoys and routes
 review/fix lanes. Do not call provider-native subagents, discover global ready
-work, or run a nested scheduler. Workspaces are provisioned only by the host's
-provisioning steps (`checksum-build.prepare` for the work branch,
-`checksum-work.prepare-worktree` for per-task branches) and only as the
-Authority names them: named branch, recorded base and remote, no detached HEAD,
-no reset/force/delete. Every other step validates the source anchor's
-authoritative `work_dir` and `branch` before source reads, tests or edits and
-never switches or repairs worktrees. `gc.work_dir` is the launcher root, not
-permission to edit there. Under `separate` drain a task's scoped commit on its
-own task branch is its handoff artifact; under `same-session` drain tasks leave
-commits to finish. Neither grants push, work-branch or default-branch writes.
+work, or run a nested scheduler. Only these host steps touch workspaces or
+branches, and only as the Authority names them (named branch, recorded base and
+remote, no detached HEAD, no reset/force/delete, no push):
+`checksum-build.prepare` / `checksum-implementation.prepare` (work branch),
+`checksum-work.prepare-worktree` (per-task branches), `integrate` (rebase +
+fast-forward of closed task branches into the work branch). Every other step
+validates the source anchor's authoritative `work_dir` and `branch` before
+source reads, tests or edits and never switches or repairs worktrees.
+`gc.work_dir` is the launcher root, not permission to edit there.
+
+Commits: every task and the review fix lane make scoped commits on the branch
+their workspace is checked out on, the task branch under `separate` or the work
+branch under `same-session`. A commit is the lane's handoff artifact and what
+later lanes review by SHA. Uncommitted work at the end of a lane is a failure of
+that lane. Nothing but `publish` pushes; nothing ever writes the default branch.
+
+### Work-branch workspace procedure
+
+Used by `checksum-build.prepare` and `checksum-implementation.prepare`. From
+the launcher rig root, with `WORK_BRANCH`, `BASE` and `REMOTE` taken from the
+portable root Authority (creating exactly that branch is executing recorded
+authority; any other name, base or remote blocks):
+
+1. `git fetch --prune "$REMOTE"`.
+2. `WT=<rig root>/worktrees/<workflow-root-id>`. Idempotently: if
+   `$REMOTE/$WORK_BRANCH` exists, add the worktree tracking it (or check out the
+   existing local branch and `git merge --ff-only`; stop on divergence); else if
+   the local branch exists, `git worktree add "$WT" "$WORK_BRANCH"`; else
+   `git worktree add "$WT" -b "$WORK_BRANCH" "$REMOTE/$BASE"`. If `$WT` exists
+   and is not this repository's worktree on `WORK_BRANCH`, fail closed. Never
+   `--detach`, reset, force or delete.
+3. Write `<rig root>/.beads` into `$WT/.beads/redirect`, and add
+   `.beads/redirect` to `$(git -C "$WT" rev-parse --git-path info/exclude)` so
+   it is never committed and never dirties a clean-tree check. Do the same in
+   every per-task worktree.
+4. Record on the workflow root `checksum.work_dir=$WT`,
+   `checksum.branch=$WORK_BRANCH`, `checksum.base=$BASE`,
+   `checksum.remote=$REMOTE`; retain the same in the portable root Handoff.
+   Stamp `checksum.branch` and `checksum.base` on every convoy member as soon
+   as the members exist (`decompose` in the build; `prepare` in the direct
+   entrypoint) so per-task lanes, whose own formula root is a `do-work` child,
+   never have to locate the parent workflow root.
+
+Under `same-session` every task runs in `$WT` and commits on `WORK_BRANCH`
+(`decompose`/`prepare` stamp `$WT` as each task's `work_dir`). Under `separate`,
+`checksum-work.prepare-worktree` creates each task's branch worktree, and
+`integrate` rebases and fast-forwards closed task branches back in dependency
+order before integrated verification and review. Conflicts block; they are task
+work, never resolved by the host. Clean-tree checks ignore excluded paths.
 
 Review repair uses the GasCity expansion + check loop (`checksum-review-loop`):
 an independent report-only review lane and a scoped fix lane repeat until the

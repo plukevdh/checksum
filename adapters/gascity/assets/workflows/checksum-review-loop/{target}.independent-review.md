@@ -11,8 +11,8 @@ separation failure, and `gc.failure_class=checksum_review_provenance`.
 
 Review the exact recorded subject revision in the workspace named by the
 context (`cd` there, verify `git rev-parse HEAD` equals
-`gc.build.code_review_subject_revision`; a mismatch is a finding, not something
-to repair). Cover the shared review checklist: behavior against the validated
+`gc.build.code_review_subject_revision` and `git status --porcelain` is empty;
+a mismatch or dirty tree is a blocking finding, not something to repair). Cover the shared review checklist: behavior against the validated
 design/plan and task acceptance, test evidence honesty (spec-anchored checks,
 observed red for defects, first and final proof commands), scope discipline,
 simplicity, and residual risk. Read only; never edit source, run fixes, or

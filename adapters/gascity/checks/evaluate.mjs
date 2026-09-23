@@ -92,7 +92,22 @@ const contracts = {
 // Steps whose bodies the adapter deliberately replaces (host provisioning,
 // checksum decomposition, finish-owned delivery); every other inherited body
 // must compile identically to the upstream contract.
-const replacedBodies = [/\.publish$/, /\.prepare-worktree$/, /^checksum-build\.(?:prepare|decompose)(?:\.|$)/];
+const replacedBodies = [/\.publish$/, /\.prepare-worktree$/, /^checksum-build\.(?:prepare|decompose)(?:\.|$)/, /^checksum-implementation\.prepare$/];
+// Checksum inserts one host-owned `integrate` step between the drain and the
+// summary in both publishing entrypoints. The graph must equal upstream's once
+// that node is spliced out (edges into it re-pointed at its predecessors).
+const integratePredecessors = {
+  'checksum-build': { separate: ['implement'], 'same-session': ['implement-same-session'] },
+  'checksum-implementation': { separate: ['wait-for-drain'], 'same-session': ['wait-for-drain'] },
+};
+const spliceIntegrate = (formula, policy, deps) => {
+  const node = `${formula}.integrate`;
+  const predecessors = deps.filter((dep) => dep.step_id === node).map((dep) => dep.depends_on_id);
+  assert.deepEqual(predecessors.sort(), integratePredecessors[formula][policy].map((id) => `${formula}.${id}`),
+    `${formula}/${policy}: integrate must follow exactly the drain that ran`);
+  return deps.filter((dep) => dep.step_id !== node).flatMap((dep) => dep.depends_on_id === node
+    ? predecessors.map((pred) => ({ ...dep, depends_on_id: pred })) : [dep]);
+};
 // build-base's review step is a single ralph task; checksum-build expands it
 // into a review loop, so its dependency graph is compared to build-basic's
 // expansion (the upstream mechanism) instead of the flat base.
@@ -109,12 +124,30 @@ for (const [suffix, base] of Object.entries(contracts)) {
     writeFileSync(join(scratch, `${name}-${policy}.json`), JSON.stringify(adapter, null, 2));
     const normalize = (value) => JSON.parse(JSON.stringify(value).replaceAll(name, base));
     const isReview = (id) => /\.review\b/.test(id);
+    // Emission order is not a contract (the inserted node perturbs it); the set of
+    // producer/check step ids and the dependency edges are.
+    const ids = (steps, from = name) => steps.map((step) => step.id.replace(from, base)).sort();
+    const integrates = ['build', 'implementation'].includes(suffix);
+    const adapterDeps = integrates ? spliceIntegrate(name, policy, adapter.deps) : adapter.deps;
+    const adapterSteps = adapter.steps.filter((step) => !(integrates && step.id === `${name}.integrate`));
+    if (integrates) {
+      const integrate = adapter.steps.find((step) => step.id === `${name}.integrate`);
+      assert.ok(integrate, `${name}/${policy}: integrate must compile under both drain policies (no condition)`);
+      assert.equal(integrate.metadata['gc.run_target'], 'checksum-host.operator');
+      // Large bodies compile to an external prompt reference; read the resolved file.
+      const resolved = integrate.description.match(/Resolved prompt file: `([^`]+)`/)?.[1];
+      const prompt = resolved ? readFileSync(resolved, 'utf8') : integrate.description;
+      assert.match(prompt, /rebase[\s\S]*--ff-only[\s\S]*Never push/, `${name}: integrate must rebase, fast-forward and never push`);
+      assert.doesNotMatch(prompt, /\bgit push\b|--force/);
+      const sorted = [...new Set(adapterDeps.map((dep) => JSON.stringify(dep)))].sort();
+      assert.equal(sorted.length, adapterDeps.length, `${name}/${policy}: splice produced duplicate edges`);
+    }
     if (suffix === 'build') {
       // Outside the review expansion the graph must match build-base exactly.
       const outside = (deps) => deps.filter((dep) => !isReview(dep.step_id) && !isReview(dep.depends_on_id));
-      assert.deepEqual(outside(normalize(adapter.deps)), outside(upstream.deps), `${name}/${policy}: dependency or sink drift`);
-      assert.deepEqual(adapter.steps.filter((step) => !isReview(step.id)).map((step) => step.id.replace(name, base)),
-        upstream.steps.filter((step) => !isReview(step.id)).map((step) => step.id), `${name}/${policy}: missing producer/check steps`);
+      assert.deepEqual(outside(normalize(adapterDeps)), outside(upstream.deps), `${name}/${policy}: dependency or sink drift`);
+      assert.deepEqual(ids(adapterSteps.filter((step) => !isReview(step.id))),
+        ids(upstream.steps.filter((step) => !isReview(step.id)), base), `${name}/${policy}: missing producer/check steps`);
       // The review loop reuses GasCity's expansion + check-loop mechanism: same
       // control shape as build-basic-review, with checksum's two lanes.
       const reference = json('--rig', 'fixture', 'formula', 'show', 'build-basic', ...args);
@@ -142,9 +175,8 @@ for (const [suffix, base] of Object.entries(contracts)) {
       assert.equal(adapter.vars.find((variable) => variable.name === 'review_fix_formula').default, 'fix-loop-base',
         'the selector stays upstream-compatible; the expansion is the repair route');
     } else {
-      assert.deepEqual(normalize(adapter.deps), upstream.deps, `${name}/${policy}: dependency or sink drift`);
-      assert.deepEqual(adapter.steps.map((step) => step.id.replace(name, base)),
-        upstream.steps.map((step) => step.id), `${name}/${policy}: missing producer/check steps`);
+      assert.deepEqual(normalize(adapterDeps), upstream.deps, `${name}/${policy}: dependency or sink drift`);
+      assert.deepEqual(ids(adapterSteps), ids(upstream.steps, base), `${name}/${policy}: missing producer/check steps`);
     }
     for (const before of upstream.steps) {
       const after = adapter.steps.find((step) => step.id === before.id.replace(base, name));
@@ -176,11 +208,12 @@ for (const [suffix, base] of Object.entries(contracts)) {
     }
   }
 }
-const source_files = ['checksum-build/prepare.md', 'checksum-build/decompose.md', 'checksum-work/prepare-worktree.md'];
+const source_files = ['checksum-build/prepare.md', 'checksum-build/decompose.md', 'checksum-integrate/integrate.md',
+  'checksum-implementation/prepare.md', 'checksum-work/prepare-worktree.md'];
 for (const file of source_files) {
   const text = readFileSync(join(root, 'adapters/gascity/assets/workflows', file), 'utf8');
   assert.doesNotMatch(text, /worktree add[^\n`]*--detach/, `${file}: host workspaces must be on named branches`);
   assert.match(text, /Authority/, `${file}: provisioning is bounded by recorded authority`);
 }
-console.log(`PASS: gc 1.4.1 lint, config, 14 contract compilations, review-loop expansion, graph/check invariants, provider patches, relocated skills. Evidence: ${scratch}`);
+console.log(`PASS: gc 1.4.1 lint, config, 14 contract compilations, review-loop expansion, integrate splice, graph/check invariants, provider patches, relocated skills. Evidence: ${scratch}`);
 console.log('Not exercised: controller, Beads writes, provider sessions/materialization, model identity, review behavior, push or PR delivery.');

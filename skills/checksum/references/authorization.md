@@ -36,10 +36,14 @@ Revisions return to Draft and must be revalidated before execution.
 
 Finish may make scoped feature-branch commits, push to the authorized remote and
 create/update the scoped PR after fresh verification and adversarial review.
-When the run authority names a task-branch pattern and base, the host may
-provision exactly those workspaces/branches and a task may commit to its own
-task branch; that is executing recorded authority, not expanding it. Integration
-into the work branch remains a finish action under the same authority.
+When the run authority names the work branch, its base and (for parallel
+execution) a task-branch pattern, an execution host may provision exactly those
+workspaces/branches; a task or review-fix lane may make scoped commits on the
+authorized branch it runs on; and the host may integrate closed task branches
+into the work branch by rebase and fast-forward only, never resolving conflicts.
+That is executing recorded authority, not expanding it. Finish verifies that
+integration and reviewed revision rather than integrating again, and remains
+the only actor that pushes or opens/updates the PR.
 Human review occurs at the PR. The delivery report says **PR ready**, never
 human-approved or merged. Neither policy nor a task delivery flag authorizes merge,
 default-branch writes, deployment, destructive actions, force-push, unrelated

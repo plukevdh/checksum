@@ -4,8 +4,8 @@ Apply `checksum-host.binding` preflight, then load `checksum.checksum-execute`.
 Read the independent review report for this iteration and its
 `code_review.acceptance_verdict` and `code_review.reviewed_revision`.
 
-**Reviewer approved and the workspace HEAD equals the reviewed revision:** make
-no change. Write a short review summary under the build artifact root that
+**Reviewer approved and the workspace HEAD equals the reviewed revision** (and
+the tree is clean): make no change. Write a short review summary under the build artifact root that
 names the approved revision, then close with `code_review.verdict=done`.
 
 **Reviewer approved but HEAD moved since the reviewed revision:** do not
@@ -18,8 +18,13 @@ should-fixes with the smallest change; an unconfirmed cause routes through
 `checksum.checksum-debug` first. Rerun the affected proof commands and read the
 full output. Record each finding's disposition (fixed with evidence, or
 declined with reasoning for the reviewer) in the portable root's review record.
-Do not push, open PRs, or write the default branch. Then write the fix summary
-and close with `code_review.verdict=iterate`; the next iteration re-reviews.
+Commit the fixes as one scoped commit on the work branch (`git status
+--porcelain` must be empty afterwards; an uncommitted fix is invisible to the
+next review and fails this lane), record the new HEAD as
+`gc.build.code_review_subject_revision` on the workflow root, and note it in
+the fix summary. Do not push, open PRs, or write the default branch. Then
+close with `code_review.verdict=iterate`; the next iteration re-reviews the new
+revision.
 
 If the findings require scope the Authority does not grant, or the loop's
 last attempt still has open blockers, record a Blocked result with the open

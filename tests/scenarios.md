@@ -39,12 +39,31 @@ Run first with `drain_policy=same-session`: `prepare` must create exactly one
 worktree on the Authority's work branch from the recorded base (never detached),
 every task bead must carry that `work_dir`, and no other worktree may appear.
 Seed one deliberate defect so the review loop iterates: the independent lane
-must report `iterate`, the fix lane must repair in the same worktree and close
-`iterate`, the next iteration must approve, and the loop must end `done` only
-when HEAD still equals the approved revision. Confirm the loop stops failed, with
+must report `iterate`, the fix lane must repair in the same worktree, commit on
+the work branch and close `iterate`, the next iteration must approve that new
+SHA, and the loop must end `done` only when HEAD still equals the approved
+revision with a clean tree. Every task must have committed on the work branch
+before `integrate`; an uncommitted task must fail `integrate`, not pass silently. Confirm the loop stops failed, with
 findings retained, if `max_attempts` is exhausted (force this once by making the
-defect unfixable within scope). `separate` drain is not a complete path until
-task-branch integration exists; do not evaluate delivery through it yet.
+defect unfixable within scope).
+
+Then run `drain_policy=separate` with at least two independent tasks and one
+dependent task. Expect one worktree and branch per task under
+`<rig>/worktrees/<task-id>` on `<work-branch>/<task-id>`, independent tasks
+created from the work branch and the dependent task created from its
+prerequisite's branch tip (never detached, never from the default branch), and a
+scoped commit on each task branch as the task's handoff. The dependent task must
+be able to use its prerequisite's code. `integrate` must rebase and fast-forward
+the branches in dependency order (the prerequisite's commits drop out of the
+dependent branch as patch-identical), run the plan's full verification on the
+work branch, and record `checksum.integrated_revision`; the review loop
+must then review that revision, not a task branch. Seed one overlapping edit in
+two independent tasks to force a rebase conflict: `integrate` must abort, block
+with `checksum_integration_conflict` naming the member and paths, leave the work
+branch at the last clean integrated state, and resolve nothing itself. Then
+rework the blocked task on its branch, re-run `integrate`, and confirm it skips
+the already-landed members and finishes. Confirm no push happened at any point
+before `publish`.
 
 ## 4. Missing or conflicting authorization
 

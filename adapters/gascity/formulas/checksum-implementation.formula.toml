@@ -20,9 +20,9 @@ default = "checksum-host.implementer"
 
 [[steps]]
 id = "prepare"
-title = "Prepare checksum implementation"
+title = "Validate checksum convoy and provision work-branch workspace"
 metadata = { "gc.run_target" = "checksum-host.operator" }
-description_file = "../assets/workflows/implement/prepare.md"
+description_file = "../assets/workflows/checksum-implementation/prepare.md"
 [[steps]]
 id = "drain-separate"
 title = "Drain checksum tasks separately"
@@ -55,9 +55,16 @@ needs = ["drain-separate", "drain-same-session"]
 metadata = { "gc.run_target" = "checksum-host.operator" }
 description_file = "../assets/workflows/implement/wait-for-drain.md"
 [[steps]]
+id = "integrate"
+title = "Integrate task branches and verify the combined work branch"
+needs = ["wait-for-drain"]
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/checksum-integrate/integrate.md"
+
+[[steps]]
 id = "summarize"
 title = "Summarize retained checksum evidence"
-needs = ["wait-for-drain"]
+needs = ["integrate"]
 metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.implementation-summary.v1", "gc.build.artifact_path_keys" = "gc.implementation.summary_path,gc.var.summary_path" }
 description_file = "../assets/workflows/implement/summarize.md"
 [steps.check]

@@ -18,11 +18,16 @@ portable root.
 
 `drain_policy={{drain_policy}}`.
 
+Stamp `checksum.branch` and `checksum.base` from the workflow root onto every
+task bead under both policies; per-task lanes read them from their own source
+anchor. Then:
+
 - `same-session`: every task runs in the shared work-branch workspace that
-  `prepare` provisioned. Stamp `checksum.work_dir` from the workflow root onto
-  each task bead as `work_dir=<absolute path>` (the key the inherited item lane
-  reads), plus `checksum.branch`. Do not create additional worktrees.
-- `separate`: leave `work_dir` unset; `checksum-work.prepare-worktree`
+  `prepare` provisioned and commits on the work branch. Stamp
+  `work_dir=<checksum.work_dir>` and `branch=<checksum.branch>` on each task
+  bead (the keys the inherited item lane reads). Do not create additional
+  worktrees.
+- `separate`: leave `work_dir`/`branch` unset; `checksum-work.prepare-worktree`
   provisions a per-task workspace and branch under the same Authority.
 
 Write the `gc.build.decomposition.v1` projection at the resolved decomposition

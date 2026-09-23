@@ -3,9 +3,11 @@ Checksum methodology on the GasCity build lifecycle. Requires scoped Beads
 authority; publishing is opt-in.
 
 GasCity provisions the work-branch workspace in `prepare`, drains tasks in it
-(`same-session`) or in per-task branches (`separate`), and repairs review
-findings through the `checksum-review-loop` expansion. `review_fix_formula`
-is kept only for upstream wrapper compatibility and is not dispatched here.
+(`same-session`) or in per-task branches (`separate`), integrates task branches
+into the work branch with integrated verification (`integrate`), and repairs
+review findings through the `checksum-review-loop` expansion.
+`review_fix_formula` is kept only for upstream wrapper compatibility and is not
+dispatched here.
 """
 formula = "checksum-build"
 version = 1
@@ -137,9 +139,16 @@ member_access = "exclusive"
 single_lane = true
 
 [[steps]]
+id = "integrate"
+title = "Integrate task branches and verify the combined work branch"
+needs = ["implement", "implement-same-session"]
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/checksum-integrate/integrate.md"
+
+[[steps]]
 id = "summarize-implementation"
 title = "Summarize retained checksum evidence"
-needs = ["implement", "implement-same-session"]
+needs = ["integrate"]
 metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.implementation-summary.v1", "gc.build.artifact_path_keys" = "gc.build.implementation_summary_path" }
 description_file = "../assets/workflows/build-base/summarize-implementation.md"
 [steps.check]

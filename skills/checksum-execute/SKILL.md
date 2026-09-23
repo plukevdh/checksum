@@ -41,10 +41,11 @@ Optional standalone [goals](references/goals.md) never replace host scheduling.
    evidence. Only observed passing checks permit done.
 7. `deliver: commit | pr` requests scoped review and finish, not authority.
    Leave delivery pending until finish succeeds. Execute never pushes and never
-   writes the work or default branch. Exception: when the host runs the task in
-   its own workspace on a task branch the Authority names (GasCity separate
-   drain), a scoped commit on that task branch is the task's handoff artifact;
-   finish still owns integration and publication.
+   writes the default branch. Standalone leaves commits to finish. Under an
+   execution host whose Authority names the branch (GasCity), a scoped commit on
+   the branch the task or review-fix lane runs on is its handoff artifact, and
+   the host integrates task branches into the work branch by rebase and
+   fast-forward; finish verifies and publishes.
 
 ## Failures and budgets
 

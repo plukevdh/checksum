@@ -71,6 +71,32 @@ test('the host provisions named-branch workspaces under recorded authority', () 
   assert.match(read(`${adapter}/formulas/checksum-work.formula.toml`), /checksum-work\/prepare-worktree\.md/);
 });
 
+test('the host integrates task branches before summary and review, never pushing', () => {
+  const integrate = read(`${adapter}/assets/workflows/checksum-integrate/integrate.md`);
+  assert.match(integrate, /topologically over the `blocks` edges/);
+  assert.match(integrate, /merge-base --is-ancestor/, 'resume must skip already-landed members');
+  assert.match(integrate, /git -C "\$MEMBER_WT" rebase "\$WORK_BRANCH"/, 'rebase runs in the task worktree');
+  assert.match(integrate, /git -C "\$MEMBER_WT" rebase --abort[\s\S]*checksum_integration_conflict/);
+  assert.match(integrate, /git -C "\$WORK_DIR" merge --ff-only/);
+  assert.match(integrate, /## Integrated verification \(both policies\)[\s\S]*checksum_integration_verification/);
+  assert.match(integrate, /## Resume after a block/);
+  assert.match(integrate, /checksum\.integrated=<TASK_BRANCH>@<PRE>\.\.<POST>/);
+  assert.match(integrate, /checksum\.integrated_revision/);
+  assert.match(integrate, /Never push/);
+  assert.doesNotMatch(integrate, /--force|\bgit push\b/);
+  // Dependent tasks must see prerequisite code before integration lands it.
+  assert.match(read(`${adapter}/assets/workflows/checksum-work/prepare-worktree.md`), /\*\*Start point\.\*\*[\s\S]*blocks`-depends/);
+  // Every lane commits so review and integration operate on SHAs.
+  assert.match(read(`${adapter}/assets/workflows/checksum-review-loop/{target}.apply-findings.md`), /Commit the fixes[\s\S]*gc\.build\.code_review_subject_revision/);
+  assert.match(read(`${adapter}/assets/workflows/checksum-review-loop/{target}.setup-review.md`), /checksum\.integrated_revision/);
+  assert.match(read(`${adapter}/assets/workflows/checksum-build/publish.md`), /descend from `checksum\.integrated_revision`/);
+  for (const [name, drain, next] of [['build', 'implement", "implement-same-session', 'summarize-implementation'], ['implementation', 'wait-for-drain', 'summarize']]) {
+    const source = read(`${adapter}/formulas/checksum-${name}.formula.toml`);
+    assert.match(source, new RegExp(`id = "integrate"\\n[^\\n]*\\nneeds = \\["${drain}"\\]`), `${name}: integrate follows the drain`);
+    assert.match(source, new RegExp(`id = "${next}"\\n[^\\n]*\\nneeds = \\["integrate"\\]`), `${name}: summary follows integrate`);
+  }
+});
+
 test('both publishing entrypoints replace inherited delivery with checksum-finish', () => {
   for (const name of ['build', 'implementation']) {
     const source = read(`${adapter}/formulas/checksum-${name}.formula.toml`);

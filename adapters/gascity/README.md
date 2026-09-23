@@ -14,13 +14,21 @@ routed through GasCity's own mechanisms:
   mechanism as upstream `build-basic-review`): `checksum-review-loop` runs an
   independent cross-model review lane and a scoped fix lane until the reviewer
   approves an unchanged revision, bounded by `max_attempts`.
-- **Task commits** under `separate` drain are the task's handoff artifact on
-  its own task branch (see the shared execute skill); `same-session` tasks leave
-  commits to finish.
+- **Commits** are every lane's handoff artifact: tasks commit on the branch
+  their workspace is on (task branch under `separate`, work branch under
+  `same-session`), and the review fix lane commits on the work branch, so review
+  and integration operate on SHAs. Only `publish` pushes.
+- **Integration** is a host step (`integrate`) between the drain and the
+  summary in both publishing entrypoints: it rebases each closed task branch
+  onto the work branch in convoy dependency order, fast-forwards, runs the plan's
+  integrated verification, and records `checksum.integrated_revision`. Conflicts
+  and verification failures block with evidence and a documented resume path;
+  the host never resolves conflicts or pushes. Under `same-session` it only
+  verifies. Dependent tasks under `separate` start stacked on their
+  prerequisites' branches so they see that code before it lands.
 
-Still open before delivery: **`separate` drain has no integration step** that
-rebases closed task branches onto the work branch before the aggregate review,
-so only `same-session` is a complete path today. Use it for initial testing.
+Both drain policies are now complete graphs. Start with `same-session` (one
+worktree, simplest to observe), then `separate` for parallel task worktrees.
 No live run has been performed; a first launch must use a disposable rig.
 Standalone checksum and its Beads backend do not depend on this adapter.
 
@@ -41,10 +49,10 @@ force-pushes or unrelated effects.
 
 | Formula | Extends | Purpose |
 | --- | --- | --- |
-| `checksum-build` | `build-base` | Full prepare → requirements → plan → plan-review → decompose → implementation → summary → review → finalize → publish graph |
+| `checksum-build` | `build-base` | Full prepare → requirements → plan → plan-review → decompose → implementation → integrate → summary → review loop → finalize → publish graph |
 | `checksum-planning` | `planning-base` | Design and plan projection with policy review |
 | `checksum-decomposition` | `decomposition-base` | Native Beads task/convoy decomposition |
-| `checksum-implementation` | `implement` | Existing validated completion set; finish blocks delivery without aggregate verification/review |
+| `checksum-implementation` | `implement` | Existing validated completion set: prepare (work branch) → drain → integrate → summary → publish; finish blocks delivery without aggregate review |
 | `checksum-work` | `do-work` | Separate-drain task in a preassigned host workspace |
 | `checksum-work-item` | `do-work-item` | Single-lane shared-drain task |
 | `checksum-review` | `code-review-base` | Independent report-only review (selector for upstream wrappers) |
@@ -98,7 +106,10 @@ evidence of completion.
    `<rig>/worktrees/<task-id>` on the Authority's task-branch pattern (default
    `<work-branch>/<task-id>`) and records `work_dir`/`branch` on the task. The
    Authority must name the branch pattern and base; otherwise provisioning
-   blocks. The launcher `gc.work_dir` is never an implementation workspace.
+   blocks. `integrate` brings task branches back into the work branch; a rebase
+   conflict blocks the build with `checksum_integration_conflict` and the
+   conflicting member IDs, and is resolved as task work, not by the host. The
+   launcher `gc.work_dir` is never an implementation workspace.
 5. Configure different author/implementer and reviewer models and record their
    actual identities and configuration provenance. Provider aliases below are
    examples of routing, not proof of actual model separation. Unknown or same
@@ -238,7 +249,9 @@ read-only compilation. Do not run `gc doctor --fix`, `gc formula cook`, or
   expansion's control shape (spec/iteration/scope/ralph beads and check scripts)
   is compared against upstream `build-basic`'s own `build-basic-review`
   expansion, its two lanes and their roles are asserted, and the review sink
-  keeps the `gc.build.review.v1` artifact gate. Publish defaults remain false.
+  keeps the `gc.build.review.v1` artifact gate. The inserted `integrate` node is
+  spliced out before graph comparison so any other edge drift still fails.
+  Publish defaults remain false.
 - `extends` **replaces whole step blocks** in gc 1.4.1; it does not merge
   individual step fields. Consequently each changed role route retains its
   complete stable step envelope (`needs`, schema/path metadata, `check`, etc.).

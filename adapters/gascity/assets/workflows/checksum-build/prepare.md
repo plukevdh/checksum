@@ -19,31 +19,18 @@ and `gc.failure_class=methodology_incompatible`.
 
 ## Workspace provisioning (host-owned)
 
-GasCity owns the workspace; this step is where it is provisioned. The launcher
-checkout (`gc.work_dir`) is never an implementation workspace.
-
-1. From the launcher rig root, `git fetch --prune <authorized remote>`.
-2. Let `WORK_BRANCH` and `BASE` be the Authority's named work branch and base.
-   Creating exactly that branch from `<remote>/<BASE>` is executing recorded
-   authority, not inventing it. Any other branch name, base or remote blocks.
-3. Worktree path: `<rig root>/worktrees/<workflow-root-id>`. Idempotently:
-   - if `<remote>/WORK_BRANCH` exists, add the worktree tracking it
-     (`git worktree add <path> --track -b WORK_BRANCH <remote>/WORK_BRANCH`,
-     or check out the existing local branch and `git merge --ff-only`; stop on
-     divergence);
-   - else if the local branch exists, `git worktree add <path> WORK_BRANCH`;
-   - else `git worktree add <path> -b WORK_BRANCH <remote>/BASE`.
-   If the path already exists and is not a worktree of this repository on
-   WORK_BRANCH, fail closed. Never use `--detach`, never reset or force.
-4. Write `<rig root>/.beads` as the target of `<path>/.beads/redirect` so `bd`
-   resolves the rig store from inside the worktree.
-5. Record on the workflow root: `checksum.work_dir=<absolute path>`,
-   `checksum.branch=WORK_BRANCH`, `checksum.base=BASE`,
-   `checksum.remote=<remote>`; retain the same in the portable root Handoff.
+GasCity owns the workspace; this step is where it is provisioned. Follow the
+**work-branch workspace procedure** in `checksum-host.binding` exactly: named
+work branch from the Authority's base and remote, `<rig root>/worktrees/
+<workflow-root-id>`, `.beads/redirect`, and `checksum.work_dir` /
+`checksum.branch` / `checksum.base` / `checksum.remote` recorded on the
+workflow root and in the portable Handoff. Never `--detach`, reset or force.
+The launcher checkout (`gc.work_dir`) is never an implementation workspace.
 
 For `same-session` drain this single workspace is shared by every task;
 `decompose` stamps it on each task bead. For `separate` drain per-task
-workspaces are provisioned later by `checksum-work.prepare-worktree`.
+workspaces are provisioned later by `checksum-work.prepare-worktree` and
+integrated back by `integrate`.
 
 Set claimed-step `gc.outcome=pass` only after the inherited keys and the
 workspace metadata are recorded, then close only this step.
