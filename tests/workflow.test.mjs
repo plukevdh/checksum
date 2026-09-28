@@ -73,6 +73,20 @@ test('portable contract and both backend mappings ship inside the router skill',
   }
 });
 
+test('unanswered design questions block planning and return to the user', () => {
+  const design = read('skills/checksum-design/SKILL.md');
+  const plan = read('skills/checksum-plan/SKILL.md');
+  const template = read('skills/checksum-design/references/design-template.md');
+  const contract = read('skills/checksum/references/workflow-contract.md');
+  assert.match(design, /ask(?:s)? the user[\s\S]*do not defer it to[\s\S]*open questions/i);
+  assert.match(design, /unanswered question remains Draft[\s\S]*ineligible for plan/i);
+  assert.match(plan, /Before writing any plan or\s+task[\s\S]*no unanswered questions/i);
+  assert.match(plan, /Do not copy a question into the plan[\s\S]*let an implementer choose/i);
+  assert.match(template, /## Resolved Questions & Assumptions/);
+  assert.doesNotMatch(template, /^## Open Questions/m);
+  assert.match(contract, /Approved\/Validated means no unanswered\s+material questions/);
+});
+
 test('documented Beads metadata keys are valid for targeted updates', () => {
   const mapping = read('skills/checksum/references/backends/beads.md');
   const keys = [...mapping.matchAll(/^\| `(checksum\.[^`]+)` \|/gm)].map((match) => match[1]);

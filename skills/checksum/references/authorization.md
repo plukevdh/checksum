@@ -15,6 +15,8 @@ the exact design and plan before implementation, and present the finish local-re
 package and wait for an explicit go before commit, push, PR or cleanup.
 Preferences configure actions after that go, not permission to skip it.
 Ask about ambiguity, scope changes, external effects and risk exceptions.
+Ask when the question is discovered and record the answer in the design; never
+defer an unanswered design question into a plan or implementation task.
 Revised content becomes Draft and needs renewed approval. Only an actual human
 approval permits the label **Approved**.
 
@@ -32,6 +34,8 @@ record **Validated** with policy/actor/content-revision provenance, and continue
 Do not wait for routine human design, plan, debugging-exception or finish approval.
 Choose bounded implementation details from the approved scope and record reasoning;
 material ambiguity or scope expansion blocks rather than inventing requirements.
+Return the exact unanswered question through the host and create no plan until
+established authority supplies the answer and the revised design is revalidated.
 Revisions return to Draft and must be revalidated before execution.
 
 Finish may make scoped feature-branch commits, push to the authorized remote and

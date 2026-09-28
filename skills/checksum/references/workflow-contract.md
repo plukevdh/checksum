@@ -29,7 +29,10 @@ Absent optional state is explicitly absent, not silently inferred from chat.
   repository, scope, source branch, base, remotes, actions, exclusions and limits;
   exception permissions and any expiration. Record conflicts or missing authority.
 - **Design:** complete narrative or durable reference, revision, observable success
-  criteria, alternatives/rationale, interfaces, edge cases, status and validation.
+  criteria, alternatives/rationale, interfaces, edge cases, resolved consequential
+  questions with answer sources, bounded assumptions with authority/evidence and
+  impact-if-false, status and validation. Approved/Validated means no unanswered
+  material questions; otherwise design is Draft/Blocked and no plan exists.
 - **Plan:** complete narrative or durable reference, revision/design revision,
   constraints, completion condition, full verification, task index, status and
   validation. Validation records actor, time, content revision, criteria checked,
