@@ -59,12 +59,15 @@ re-enters the workflow at design.
   executable reproduction) from the diagnosis contract or recorded inline
   diagnosis and watch it fail against the pre-fix behavior before fixing. This
   applies to every kept-code mode and cannot be disabled by project preference.
-  Record the exact command and failing result in the task Result; for light work,
+  Record the exact command and failing result in the selected backend's task Result; for light work,
   record it in the host task tracker or an explicit execution evidence block.
   `lean` output is throwaway and must re-enter at design before becoming kept code.
   If reproduction is genuinely blocked, record the exact blocker and best
   available evidence, define the strongest executable proxy check, and get the
-  user's explicit acceptance of this exception before implementation. Carry that
+  applicable explicit exception authorization under the shared
+  [authorization policy](../../checksum/references/authorization.md) before
+  implementation (human acceptance interactively; expressly permitted policy
+  decision in PR-gated mode). Carry that
   exception and residual risk into finish; never claim the proxy was observed
   failing against the original bug.
 - **Containment uses a suppression check, not the permanent regression check.**

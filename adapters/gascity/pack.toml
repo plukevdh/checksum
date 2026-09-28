@@ -1,0 +1,11 @@
+[pack]
+name = "checksum-host"
+version = "0.1.0"
+schema = 2
+
+[imports.checksum]
+source = "../.."
+
+[imports.gc]
+source = "https://github.com/gastownhall/gascity-packs/tree/main/gascity"
+version = "sha:3b3b89f2011e06d84459aa7bea1552382f13930a"

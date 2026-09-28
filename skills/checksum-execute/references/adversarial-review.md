@@ -16,40 +16,43 @@ A model should not evaluate itself: models recognize and favor their own output
 (self-preference bias), and executor and reviewer from the same model share blind
 spots. With `reviewer: auto` (default), take the first rung that works:
 
-1. **Cross-model** — the other host's CLI reviews this host's work: from Claude
-   Code, dispatch the review to `codex exec`; from Codex, to `claude -p`.
+1. **Cross-model** — a different model reviews the executor's work through a
+   host-supplied provider route. Record actual executor/reviewer models; a
+   different CLI or agent name alone does not prove model independence.
 2. **Clean-context subagent** — same model, no conversation memory, no stake in
    the code. Removes context bias, not model bias; say so in the report.
 3. **Structured self-pass** — the checklist below, run cold after re-reading design
    and plan. Weakest; label it as such.
 
-An explicit `reviewer:` preference pins a rung. If the pinned rung is unavailable
-(CLI missing or unauthenticated), report that and fall down the ladder rather than
-skipping review.
+An explicit `reviewer:` preference requests a rung. If unavailable, disclose why
+and fall down the ladder rather than skipping review, unless project instructions
+require that rung (then block). Record rung, provider/model, reasoning strength,
+dispatch provenance, reviewed revision, scope and limitations.
 
 ## Cross-model dispatch
 
-Prepare inputs the reviewer can read without tool permissions drama:
+Standalone uses the bundled
+[host binding](../../checksum/references/hosts/standalone.md); a GasCity adapter
+supplies its own role/provider route. Prepare complete inputs through that route:
 
 1. Write the full diff — including untracked files — to a temp file
    (e.g. `git diff` plus `git diff --no-index /dev/null <new-file>` per untracked
    file, concatenated).
-2. Build the prompt from the template below with filesystem paths to the design,
-   plan, task files, and the diff file.
+2. Build the prompt below with complete design, plan, task records and full diff.
+   Use durable references or read-only projections if the backend is not files.
 3. Dispatch, read-only, **at review strength**: reviews run on a top-tier model at
    the highest reasoning effort the CLI exposes — a junior reviewer adds little.
    Use the `reviewer-model` preference values when set; otherwise the strongest
-   tier the CLI offers.
-   - from Claude Code:
-     `codex exec --sandbox read-only -m <model> -c model_reasoning_effort="xhigh" "<prompt>"`
-   - from Codex: `claude -p --model <model> "<prompt>"`, raising the thinking
-     budget if the CLI exposes it (e.g. `MAX_THINKING_TOKENS`); the reviewer only
-     needs to read the referenced files
+   available host-supplied tier. Concrete provider commands and sandbox setup
+   belong to the host, not core methodology. Verify effective filesystem/tool
+   isolation separately: a read-only backend/bead flag does not isolate the
+   filesystem or prevent other side effects. Do not send private code to a
+   third-party provider without permission.
 4. Triage the findings exactly as with any reviewer. The cross-model reviewer's
    report is still a claim — verify each blocker against the code before acting
-   on it, and never let a reviewer's *approval* substitute for Gate 1 evidence.
+   on it, and never let a reviewer's *approval* substitute for fresh verification.
 
-If the other CLI errors or hangs, note it and drop to rung 2.
+If the route errors or times out, record it and use the next permitted rung.
 
 ## Reviewer dispatch prompt (all rungs)
 
@@ -59,17 +62,17 @@ your job is to find what is wrong, missing, or dishonest before a human relies o
 it. Judge only from the documents and diff; implementer intent doesn't count.
 
 ## Design
-<design.md verbatim, or its path for a cross-model reviewer>
+<complete design record, or accessible read-only reference>
 
 ## Plan
-<plan.md + task files verbatim (statuses as claimed), or their paths>
+<complete plan and task records (statuses as claimed), or accessible references>
 
 ## Diff
 <full diff including untracked files, or the diff file's path>
 
 Work the checklist below. Report findings as:
 - BLOCKER: incorrect behavior, unmet design criterion, dishonest test/evidence
-- SHOULD-FIX: real problems that can ship behind a follow-up only if the user says so
+- SHOULD-FIX: real problems to resolve before delivery, not an unattended to-do list
 - NIT: style and polish
 Cite file:line for every finding. If you find nothing in a category, say what you
 checked to conclude that.
@@ -105,15 +108,15 @@ this fail to catch?"
 
 ## Triage
 
-Review feedback is incorporated **before** the user review gate — the user reviews
-the post-review state, not a list of known problems:
+Review feedback is incorporated **before** finish's delivery review package under
+either approval policy:
 
 - **Blockers and should-fixes: fix them now** (substantive fixes return to execute
   and re-verify; rerun whatever verification the fixes touch). A finding you
   believe is wrong is not silently dropped — verify against the code and present
-  the disagreement with evidence at the user gate.
-- **Nits:** fix when trivial and in scope; otherwise list them at the gate.
-- The review summary is recorded where finish can find it — the task's Result
-  section for task-scoped reviews, a `## Review` section in `plan.md` for the
-  change-wide one — reporting reviewer rung and model, findings, and what changed
-  in response: findings plus resolutions, not a to-do list.
+  the disagreement with evidence in the package and PR when applicable.
+- **Nits:** fix when trivial and in scope; otherwise disclose them.
+- Record findings and resolutions in the selected backend's task Result (scoped)
+  or root Review (change-wide), with reviewer provenance and tested revision.
+  Policy validation is not human acceptance. Repairs stay within configured
+  budgets; exhaustion records blocked state rather than another review loop.

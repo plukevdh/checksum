@@ -1,0 +1,68 @@
+description = """
+Checksum post-implementation review expansion.
+
+Uses the GasCity expansion + check loop (the same mechanism as the upstream
+`build-basic-review` starter) to run checksum's adversarial review: one
+independent cross-model review lane, one scoped fix lane, repeated until the
+reviewer approves an unchanged revision or the bounded attempts are exhausted.
+The `review_fix_formula` selector is not used; this loop is the repair route.
+"""
+formula = "checksum-review-loop"
+type = "expansion"
+version = 1
+contract = "graph.v2"
+
+[vars]
+[vars.implementation_target]
+description = "Role target that applies review findings inside the authorized workspace."
+default = "checksum-host.implementer"
+
+[[template]]
+id = "{target}.setup-review"
+title = "Prepare checksum review context"
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/checksum-review-loop/{target}.setup-review.md"
+
+[[template]]
+id = "{target}.review-loop"
+title = "Review and repair until an unchanged revision is approved"
+needs = ["{target}.setup-review"]
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/checksum-review-loop/{target}.review-loop.md"
+
+# Three bounded fix rounds plus the confirming review of the final revision.
+[template.check]
+max_attempts = 4
+
+[template.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/implementation-review-approved.sh"
+timeout = "10m"
+
+[[template.children]]
+id = "{target}.independent-review"
+title = "Independent cross-model checksum review"
+metadata = { "gc.run_target" = "checksum-host.reviewer" }
+description_file = "../assets/workflows/checksum-review-loop/{target}.independent-review.md"
+
+[[template.children]]
+id = "{target}.apply-findings"
+title = "Apply checksum review findings"
+needs = ["{target}.independent-review"]
+metadata = { "gc.run_target" = "{implementation_target}", "gc.continuation_group" = "checksum-review-fixes" }
+description_file = "../assets/workflows/checksum-review-loop/{target}.apply-findings.md"
+
+[[template]]
+id = "{target}"
+title = "Project the approved checksum review"
+needs = ["{target}.review-loop"]
+metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.review.v1", "gc.build.artifact_path_keys" = "gc.build.review_report_path" }
+description_file = "../assets/workflows/checksum-review-loop/{target}.md"
+
+[template.check]
+max_attempts = 3
+
+[template.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"

@@ -1,153 +1,74 @@
 ---
 name: checksum
-description: Start or resume checksum for features, bug diagnosis and fixes, refactors, or unexpected failures. Routes unexplained failures through evidence-driven debugging, then the user-chosen light or full design → plan → execute → finish flow. Do not use for read-only questions, trivial edits, or when dispatched as a subagent with a narrow task.
+description: Start or resume checksum for features, diagnosis, fixes and refactors. Routes design → plan → execute → finish with debug recovery. Not for read-only questions, trivial edits or narrow helper subagents; host-assigned phase invocations remain supported.
 ---
 
 # Checksum: Workflow Router
 
-Checksum is a four-phase build loop: **design → plan → execute → finish**, with
-**debug** as an entry and recovery mode when the cause is unknown. This skill
-decides what weight the task deserves, which mode or phase applies, and hands off
-to the relevant skill.
+One portable methodology: design before code, evidence before claims, bounded
+scope, and explicit authority. Load [workflow-contract](references/workflow-contract.md)
+and [authorization](references/authorization.md) before any phase. No mandatory
+runtime is needed for the default files/standalone/interactive workflow.
 
-Core principles, in priority order:
+## Initialize or resume
 
-1. **Direct user instructions beat preferences, which beat framework defaults.**
-2. **Design before code.** Upfront design (data shapes, contracts, edge cases) is the
-   highest-leverage quality step for an agent — more than any testing ritual.
-3. **Evidence before claims.** No phase completes on "should work." Fresh command
-   output or it did not happen.
-4. **Approval gates never scale down.** Ceremony shrinks with the task; the human's
-   yes before implementation does not.
+1. Load optional user `~/.checksum/preferences.md` and project
+   `.checksum/preferences.md`; project directives win conflicts, direct
+   instructions and project prohibitions remain binding. See
+   [preferences](references/preferences.md). Do not create preferences implicitly.
+2. Resolve backend, host and approval policy; load the selected backend reference.
+   Record method revision, effective preferences and run authority. Missing
+   required authority blocks before edits; never infer it from the host.
+3. Load the explicit work/root and assigned task, or locate the relevant current
+   record using [lifecycle](references/lifecycle.md). Read complete records, not
+   just statuses. Revalidate stale assumptions and reverify recent completed work.
+   With GasCity, assignment, resume and subsequent phase invocation belong to the
+   host; report the selected next phase rather than launching other work.
 
-## Step 1: Load preferences
+## Diagnose before classifying
 
-Read these files if they exist (both may apply; the project file wins where they conflict):
+For a defect or unexplained failure, invoke `checksum-debug` unless causal
+evidence already confirms the cause. Carry observed/expected behavior,
+reproduction or exact blocker, confidence, evidence, fix boundary and regression
+condition into the work record either way. Do not repeat diagnosis merely to
+produce a formal document. Probable/unknown corrections and containment use the
+authorization risk-exception rules; inference is never confirmation.
 
-1. `~/.checksum/preferences.md` — user-wide preferences
-2. `.checksum/preferences.md` — project preferences, at the repository root
+## Choose proportional weight
 
-Preferences are plain markdown: a `## <phase>` heading per phase plus an optional
-`## general` section, containing prose directives the phase skills must obey. The
-format and recognized settings are documented in [references/preferences.md](references/preferences.md).
-If neither file exists, use the defaults stated in each skill — never invent a
-preferences file, and never treat its absence as an error.
+- **Spike:** bounded feasibility question, throwaway code only, answer and evidence.
+- **Light:** small change to an existing flow; concise design and plan with the
+  same acceptance, diagnosis, review and finish criteria. Files/interactive may
+  carry these in an explicit chat handoff and task tracker; retained backends keep
+  them in their record rather than relying on conversation memory.
+- **Full:** new capability/component/interface, persistence, security, concurrency
+  or external effects; complete design, plan and task records.
 
-Carry the relevant preference sections into every phase you run or delegate.
+Interactive proposes a weight for user confirmation; light design/plan may share
+one explicit approval. PR-gated chooses and records an appropriate weight within
+authorized scope without a routine wait. Growth or ambiguity that changes scope
+requires renewed authority, not silent implementation.
 
-## Step 2: Diagnose before classifying a fix
+## Select and hand off
 
-For a reported defect, failing test or build, performance regression, integration
-failure, or unexpected behavior:
+Select the first applicable phase:
 
-- No current investigation and no cause established by causal evidence → invoke
-  `checksum-debug`.
-- Cause already confirmed under the checksum-debug
-  [confidence definitions](../checksum-debug/references/diagnosis.md) → state the
-  causal evidence, reproduction (or exact blocker), and regression condition inline
-  and carry them forward. Do not invoke debug merely to produce a formal contract.
-- Probable or unknown diagnosis after investigation → show the confidence and
-  evidence, then ask whether to investigate further, proceed with that uncertainty,
-  or stop. `uncertain-fix: require-cause` removes the proceed option. Otherwise, a
-  correction shipped with an unconfirmed cause is provisional: the plan and finish
-  record must carry the residual risk, rollback, falsifying/monitoring signal,
-  explicit owner, and durable follow-up outside the current plan's completion set.
-  Do not automatically loop back into debug or silently treat inference as
-  confirmation.
+1. `checksum-design`: missing, incomplete or stale design.
+2. `checksum-plan`: current question-complete Approved (interactive) or
+   Validated (PR-gated) design, but no current validated/approved plan. Any
+   unanswered design question routes back to design/user clarification, not plan.
+3. `checksum-execute`: authorized current plan with unfinished tasks or failing
+   checks. Active retains its design/plan validation provenance.
+4. `checksum-finish`: all relevant tasks done with passing evidence, delivery pending.
 
-Debug does not choose task weight or implement production changes, including
-containments. Those go through the normal design, plan, execute, review, and finish
-gates.
+Debug returns evidence and the proposed next phase. A changed fix boundary or
+containment returns to plan, or design if behavior/scope changed. Do not implement
+around stale documents. A completed change gets new work identity for new scope;
+PR feedback within existing scope reopens the affected tasks, invalidates stale
+evidence/review and repeats verification before updating the same authorized PR.
 
-## Step 3: Classify the weight
-
-Say the classification out loud so the user can override it:
-
-- **Spike** — a feasibility question whose output is an answer, not kept code.
-  State the question and probe in 2–3 sentences, get a nod, investigate cheaply,
-  report a recommendation. Anything built is labeled throwaway. No artifacts.
-- **Light** — a small, bounded change to a flow that already exists in this repo.
-  Most bug fixes and debugging outcomes land here. The full ceremony happens **in
-  chat, with no artifact files**: a short design (approach, files touched — and for
-  bugs, the reproduction, diagnosis, confidence, and regression condition) plus a
-  chat plan (task list with acceptance checks, per the plan skill's shaping rules).
-  For small changes, present both in one message with one approval; **stop and wait
-  for the yes**, then run execute and finish as normal, with the approved chat plan
-  standing in for the plan file.
-- **Full** — new capabilities, new components, interface changes, anything with
-  persistence, security, concurrency, or external effects. All four phases with
-  written artifacts. The artifact is what scales between light and full — the
-  ceremony (design thinking, acceptance checks, approval, verification) is
-  identical.
-
-When in doubt, don't assume — present the choice with a one-line cost/benefit and
-your recommendation, and let the user pick the weight. When complexity grows
-mid-task, stop, describe what changed, and ask whether to upgrade; never silently
-continue at the old weight, and never change weight in either direction without the
-user's call.
-
-## Step 4: Select the phase (full weight)
-
-An explicitly retained diagnosis uses
-`<artifacts dir>/YYYY-MM-DD-<slug>/diagnosis.md` at any weight and seeds that
-directory if work grows. Full-weight build artifacts live in the same directory
-(`artifacts dir` defaults to `docs/checksum/` and is overridable via preferences):
-
-- `design.md` — the design, with `**Status:** Draft | Approved`
-- `plan.md` — the plan overview, with `**Status:** Draft | Approved | Active | Complete`
-- `tasks/NN-<task-slug>.md` — one claimable file per task, tracked in frontmatter
-  (`status: pending | claimed | done | blocked`, `depends`, `deliver`)
-
-Use the slug the user named; otherwise match the change being discussed against
-existing artifact directories. Then select the first phase that applies:
-
-1. **design** — no design exists, or it is incomplete or stale (its goal,
-   constraints, or approach no longer describe the requested work).
-2. **plan** — design is question-complete and Approved but no current plan
-   (overview + task files) exists. Any unanswered design question routes back to
-   design/user clarification, not plan.
-3. **execute** — plan is Approved or Active with tasks not yet `done` (pending,
-   claimed, or blocked) or with failing checks.
-4. **finish** — every task file is `done` and verified, plan status still Active.
-
-A plan with `**Status:** Complete` is closed; a new request gets a new slug.
-Details and staleness rules: [references/lifecycle.md](references/lifecycle.md).
-
-Artifacts are working papers, not deliverables: **never stage or commit anything
-under the artifacts directory unless the user explicitly asks** — rules in
-lifecycle.md.
-
-## Step 5: Hand off
-
-Invoke the mode or phase skill and follow it exactly:
-
-| Mode / phase | Skill |
-|---|---|
-| debug (from Step 2, not a build phase) | `checksum-debug` |
-| design | `checksum-design` |
-| plan | `checksum-plan` |
-| execute | `checksum-execute` |
-| finish | `checksum-finish` |
-
-After debug reports, return to Step 2 unless the user chose pause/stop or the work
-was diagnosis-only. For debug invoked from an active execute phase, run only Step
-2's confidence gate. Resume execute without reclassifying weight only when the
-approved plan already describes the correction and no new containment scope was
-introduced. A new containment or changed fix boundary returns to plan (or design
-when behavior/scope changed) for user approval first; this applies equally to full
-artifacts and light chat state. After each full-weight build phase reports, return
-to Step 4 and select again; for light work, continue to the next phase represented
-by the approved chat state. Stop early only when the user asked for design-only or
-plan-only work.
-
-## Gates and interrupts
-
-- Never begin implementation before the design is approved — for light tasks the
-  design is two sentences in chat, but the approval is still a hard stop. An
-  unanswered design question also blocks planning regardless of status.
-- Pause and ask when you hit real ambiguity, growing scope, a destructive action,
-  or an external effect (push, publish, API calls with side effects).
-- If an artifact turns out stale mid-phase, return to the earlier phase. Do not
-  patch around a wrong design from inside execute.
-- If a failure's cause is unknown, return to `checksum-debug`; do not guess from
-  inside design or execute.
+Every handoff follows the shared contract, including context, record references,
+authority, evidence, budgets, risk and exact next action. Standalone invokes the
+selected phase; a hosted phase returns that handoff to its orchestrator. Stop for
+design-only, plan-only or diagnosis-only requests. Blocked work is durable progress,
+not a reason to poll humans or invent permission.

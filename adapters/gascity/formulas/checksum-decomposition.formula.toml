@@ -1,0 +1,19 @@
+description = "Project the portable checksum plan into native Beads tasks and a GasCity convoy."
+formula = "checksum-decomposition"
+version = 1
+contract = "graph.v2"
+extends = ["decomposition-base"]
+target_required = false
+internal = true
+
+[[steps]]
+id = "decompose"
+title = "Decompose checksum plan"
+metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.decomposition.v1", "gc.build.artifact_path_keys" = "gc.build.decomposition_path,gc.var.decomposition_path" }
+description_file = "../assets/workflows/decomposition-base/decompose.md"
+[steps.check]
+max_attempts = 3
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"

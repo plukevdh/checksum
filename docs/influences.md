@@ -1,14 +1,15 @@
 # Influences and Evidence
 
-Checksum synthesizes three open frameworks and current research. This file records
+Checksum synthesizes open frameworks and current research. This file records
 what was adopted, what was rejected, and why — so future preference and skill
 changes can argue against the original reasoning instead of rediscovering it.
 
 ## From [obra/superpowers](https://github.com/obra/superpowers)
 
 **Adopted:**
-- Hard approval gates that never scale down with task size (brainstorming's
-  "the ceremony scales; the approval gate never does").
+- Interactive approval gates that never scale down with task size (brainstorming's
+  "the ceremony scales; the approval gate never does"). Explicit PR-gated execution
+  is a later extension: quality checks stay, while human review moves to the PR.
 - Plans written for a zero-context implementer: exact files, signatures, commands,
   expected output; "no placeholders" as a plan failure class.
 - Verification-before-completion: no claims without fresh evidence; the gate
@@ -106,6 +107,41 @@ changes can argue against the original reasoning instead of rediscovering it.
 - Specialist agent rosters — the two dispatch prompts (implementer, adversarial
   reviewer) live as reference templates instead.
 
+## Composition with Beads and GasCity
+
+The integration separates method, work storage, execution host, and authorization:
+
+- [Beads](https://github.com/gastownhall/beads) supplies native work IDs,
+  dependency-aware readiness and atomic claims. Its records can carry checksum
+  design, plan, evidence and review without a second Markdown task tracker.
+- [GasCity](https://github.com/gastownhall/gascity) supplies scheduling, sessions,
+  workspaces and formula composition. Its methodology contracts are an adapter
+  boundary, not a reason to copy checksum's skills into another pack.
+- The installed CLI surfaces inspected for this work were Beads **1.2.2** and
+  GasCity **1.4.1**. The inspected `gascity-packs` revision was
+  `3b3b89f2011e06d84459aa7bea1552382f13930a`. These are compatibility observations,
+  not promises that future upstream versions preserve every contract.
+- GasCity's artifact schemas remain adapter concerns. They do not force the
+  standalone method to adopt a heavier design format. Beads is authoritative in
+  city mode; required host artifacts are projections with source references.
+- Human approval and quality validation are different. The interactive default
+  keeps local approval; a scoped PR-gated run can validate design/plan and prepare
+  a reviewed PR without inventing human approval. Neither policy allows an agent
+  to call a failing or blocked result complete.
+- Beads claim atomicity is not dependency validation, filesystem isolation, or a
+  distributed lock across disconnected stores. Separate provider roles do not
+  prove independent review without actual provider/model provenance.
+
+**Rejected:** a GasCity-specific methodology fork; bidirectional task-file/Beads
+mirroring; a workflow engine inside checksum; deriving permissions from an
+installed tool; and deleting durable work records like temporary working papers.
+Leaving the orchestrator must not require abandoning the work record or method.
+
+The operational contract is in
+[workflow-contract.md](../skills/checksum/references/workflow-contract.md), the
+policy in [authorization.md](../skills/checksum/references/authorization.md), and
+the host-specific integration in the [adapter](../adapters/gascity/README.md).
+
 ## Research shaping the testing default
 
 - **Böckeler, ["TDD inside the agent loop — theater or actual value?"](https://martinfowler.com/articles/exploring-gen-ai/tdd-in-the-agent-loop.html)
@@ -159,8 +195,8 @@ adversarial review, not from ritual ordering.
 Both reward the same plan property: a completion condition stated as exact commands
 with expected output plus scope constraints. Checksum's plan template carries a
 `Completion Condition` section for this; execution surfaces proof output into the
-transcript so evaluators can judge. Git actions and external effects are never part
-of a goal — they stay behind the finish phase's user review gate.
+transcript so evaluators can judge. Goals do not grant authority for Git actions or
+external effects: those belong to finish under the selected authorization policy.
 
 ## Distribution learnings (from installing this plugin)
 

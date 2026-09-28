@@ -1,0 +1,22 @@
+description = "Checksum execution for one GasCity-assigned source anchor."
+formula = "checksum-work"
+version = 1
+contract = "graph.v2"
+extends = ["do-work"]
+target_required = true
+internal = true
+
+[vars.implementation_target]
+default = "checksum-host.implementer"
+
+[[steps]]
+id = "prepare-worktree"
+title = "Validate host-assigned checksum workspace"
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/checksum-work/prepare-worktree.md"
+[[steps]]
+id = "close-source-anchor"
+title = "Close only the completed checksum task"
+needs = ["implement"]
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/do-work/close-source-anchor.md"

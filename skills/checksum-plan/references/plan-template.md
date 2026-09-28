@@ -1,11 +1,16 @@
 # [Change Name] Implementation Plan
 
 > **For implementers:** Execute with the `checksum-execute` skill. Tasks live in
-> `tasks/` as separate claimable files; claim before working, respect `depends`,
-> and mark `done` only after observed passing checks.
+> the selected authoritative backend; claim before working, respect dependencies,
+> and mark done only after observed passing checks. File examples below apply to
+> the files mapping; replace links with stable record IDs for other backends.
 
 **Status:** Draft
-**Design:** [./design.md](./design.md)
+**Design:** [design record reference and revision]
+**Revision and validation:** [content revision; human Approved or policy Validated;
+actor/time/authority/criteria/outcome]
+**Work context:** [root ID; repository/base/work branch/remotes; backend/host/policy;
+method/effective preferences/run authority references]
 **Goal:** [One sentence.]
 **Tech:** [Languages, frameworks, key existing dependencies.]
 
@@ -26,8 +31,20 @@ constraints. This block is ready to paste into `/goal` on hosts that support goa
 
 | Task | Outcome | Depends | Deliver |
 |---|---|---|---|
-| [`tasks/01-<slug>.md`](tasks/01-<slug>.md) | [one line] | — | plan |
-| [`tasks/02-<slug>.md`](tasks/02-<slug>.md) | [one line] | 01-<slug> | plan |
+| [task record ID/reference] | [one line] | — | plan |
+| [task record ID/reference] | [one line] | [dependency ID] | plan |
+
+**Completion set:** [exact task IDs; risk follow-ups excluded]
+
+## Handoff
+
+[Current/next phase, assigned task, record revisions, validation and evidence,
+authority, unresolved risk/block reason and next action. Persist on interruption.]
+
+## Review and Delivery
+
+[Review scope/revision, rung/provider/model/provenance, findings/resolutions;
+commit hashes/PR URLs, pending delivery, independent merge state.]
 
 ## Full Verification
 

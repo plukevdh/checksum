@@ -4,8 +4,10 @@ A minimal, evidence-driven development workflow for coding agents:
 
 **design → plan → execute → finish**, with **debug when the cause is unknown**
 
-One plugin, two hosts (Claude Code and Codex), zero runtime dependencies — the
-entire framework is markdown. Built to start small and grow with your preferences.
+One methodology, usable directly in Claude Code and Codex or through an
+orchestrator. The standalone file-backed workflow has no runtime dependencies.
+Beads is an optional work backend; the GasCity adapter supplies orchestration,
+not a second copy of the development method.
 
 ## Philosophy
 
@@ -24,19 +26,20 @@ entire framework is markdown. Built to start small and grow with your preference
   mandatory phase: reproduce, locate the failing boundary, test one falsifiable
   hypothesis at a time, then hand a causal diagnosis and regression condition to
   the appropriately light or full fix flow.
-- **The artifact scales, the ceremony doesn't.** Every change gets design thinking,
-  a plan with acceptance checks, your approval, and verified evidence — but only
-  full-weight changes get artifact files. Light work (most bug fixes) runs the
-  whole ceremony in chat. And whatever the weight: your yes before implementation,
-  and your local review before any commit/push/PR, never scale away.
-- **Artifacts are working papers.** Design and plan docs are never committed unless
-  you explicitly ask — they stay out of every changeset. When the change ships, the
-  plan is distilled into the PR description (or commit body) as the permanent
-  record of the decisions, and the working papers are cleared.
+- **The artifact scales, the quality checks don't.** Every change gets design
+  thinking, a plan with acceptance checks, independent review, and verified
+  evidence. Interactive mode keeps your approval before implementation and local
+  review before delivery. Explicit PR-gated runs do the work autonomously on a
+  work branch; you review the PR before merge.
+- **Artifacts are working papers.** Design and plan files are never committed
+  unless you explicitly ask. Decisions are distilled into the PR description or
+  commit body before temporary papers are cleared. Beads work records are retained,
+  not deleted as temporary artifacts.
 - **Capability-adaptive.** Execution dispatches a fresh subagent per task when the
-  current harness exposes a native dispatch tool, with the primary agent verifying
-  every result. Without one it runs inline and uses `/goal`, where available, for
-  long autonomous runs.
+  current standalone harness exposes a native dispatch tool, with the primary
+  agent verifying every result. Without one it runs inline and uses `/goal`, where
+  available. Under GasCity, the city owns scheduling and workspaces; checksum
+  workers execute only their assigned work.
 
 ## Install
 
@@ -102,12 +105,14 @@ Invoke the router and describe the change:
 - Codex: `$checksum <what you want to build>`
 
 The router sends unexplained failures to debug before entering the build loop,
-classifies the resulting change (spike / light / full), routes through the phases,
-and stops at every gate. Debug produces a diagnosis contract — reproduction,
+classifies the resulting change (spike / light / full), and routes through the
+phases under the selected authorization policy. Debug produces a diagnosis contract — reproduction,
 evidence, causal confidence, fix boundary, and regression condition — rather than
 implementation.
 
-| Phase | Output (full weight) | Gate |
+The default remains **files + standalone + interactive**:
+
+| Phase | Output (full weight, files backend) | Interactive gate |
 |---|---|---|
 | design | `docs/checksum/YYYY-MM-DD-<slug>/design.md` | you approve the design |
 | plan | `.../plan.md` — tasks with spec-derived acceptance checks | you approve the plan |
@@ -125,11 +130,58 @@ On a bug or unexpected failure, invoke `$checksum-debug` in Codex or
 it. Diagnosis returns to the same user-chosen light/full flow; it does not force a
 written plan.
 
-Light-weight tasks run the same phases and gates with design and plan presented in
-chat instead of files. Artifact files are never committed unless you ask.
+With the default files backend, light-weight tasks present design and plan in chat
+instead of creating files. Beads-backed work persists even a light plan so another
+session can resume it. Temporary artifact files are never committed unless you ask.
 
-Resume any time with "resume checksum" — phase selection is driven by the artifacts
-and their status lines, not session memory.
+Resume any time with "resume checksum" and the work reference — phase selection
+is driven by the selected backend's records, not session memory.
+
+## Compose storage, execution, and authorization
+
+These choices are independent:
+
+| Setting | Default | Alternative |
+|---|---|---|
+| `work-backend` | `files` | `beads` — authoritative work graph, also usable without GasCity |
+| `execution-host` | `standalone` | `gascity` — city-owned scheduling and workspaces |
+| `approval-policy` | `interactive` | `pr-gated` — scoped autonomous work through PR delivery, never merge |
+
+For standalone Beads use, add to your project preferences:
+
+```markdown
+## general
+- work-backend: beads
+```
+
+Initialize and configure Beads separately; checksum does not install it, initialize
+a database, or migrate existing work silently. The installed `bd` CLI and its
+storage dependencies are required only for this backend. See the
+[Beads mapping](skills/checksum/references/backends/beads.md) for commands, record
+layout, claiming, and resume semantics.
+
+Beads replaces task files, not the method. A run has one authoritative backend:
+do not maintain both bead status and Markdown task status. Generated documents
+needed by an external host are projections, not a second work tracker.
+
+The [GasCity adapter](adapters/gascity/README.md) composes the same skills with
+Beads and PR-gated execution. Its integration details and compatibility checks
+live outside the standalone skills. Leaving GasCity does not require abandoning
+the Beads records: resume them with checksum under a newly recorded standalone
+handoff and authorization context.
+
+**PR-gated is explicit authorization, not an environment heuristic.** Merely
+installing GasCity or selecting Beads grants no extra permissions. The run records
+its scope, repository, work branch, base, allowed remote and actions before
+execution. Existing prohibitions cannot be silently relaxed. The policy permits
+scoped branch commits, pushes and PR updates, not default-branch writes, merges,
+deployment, or unrelated effects. Blockers remain visible; missing evidence is
+not transformed into a passing result.
+
+The shared [workflow contract](skills/checksum/references/workflow-contract.md)
+and [authorization policy](skills/checksum/references/authorization.md) define
+these boundaries. These are instructions for agents and adapters, not a security
+sandbox; enforce merge protection and tool permissions in the host/repository.
 
 ## Make it yours
 
@@ -166,11 +218,41 @@ skills/
   checksum-design/     design phase + template
   checksum-plan/       plan phase + template
   checksum-execute/    execute phase + testing policy, goals, delegation refs
-  checksum-finish/     finish phase + verification, adversarial review refs
+  checksum-finish/     finish phase + verification reference
 .claude-plugin/        Claude Code manifest + marketplace
 .codex-plugin/         Codex manifest
 .agents/plugins/       Codex repo marketplace
+adapters/gascity/      GasCity integration, referencing the shared skills
+tests/                distribution checks and workflow evaluation scenarios
 ```
+
+## Evaluate this branch
+
+The composition work is being evaluated on `feat/composable-workflows`, separately
+from mainline checksum. Do not point an existing live symlink installation at this
+checkout unless you intend to change that host's workflow. Use a separate host
+profile or install a frozen copy into an isolated `CODEX_HOME` for evaluation.
+Do not import the adapter into a production city before reviewing its permissions.
+
+Run the dependency-free repository checks with Node.js 20 or newer:
+
+```bash
+node --test tests/*.test.mjs
+sh -n scripts/install-local.sh
+git diff --check
+```
+
+With Beads installed, opt into the actual persistence/claim/dependency round trip
+in a new disposable embedded store (isolated home/configuration, no remote):
+
+```bash
+CHECKSUM_TEST_BEADS=1 node --test tests/beads-roundtrip.test.mjs
+```
+
+Optional tool-compatibility checks report when their tool is unavailable.
+Structural checks do not prove an LLM follows the workflow: use the
+[evaluation scenarios](tests/scenarios.md) to inspect behavior and retained
+evidence, including blocked runs and resumed PR feedback.
 
 ## Provenance
 

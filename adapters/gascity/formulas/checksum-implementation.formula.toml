@@ -1,0 +1,81 @@
+description = "Checksum implementation of an already validated, authorized completion set."
+formula = "checksum-implementation"
+version = 1
+contract = "graph.v2"
+extends = ["implement"]
+target_required = true
+
+[vars.context_path]
+default = ""
+[vars.drain_policy]
+default = "separate"
+[vars.summary_path]
+default = ""
+[vars.push]
+default = "false"
+[vars.open_pr]
+default = "false"
+[vars.implementation_target]
+default = "checksum-host.implementer"
+
+[[steps]]
+id = "prepare"
+title = "Validate checksum convoy and provision work-branch workspace"
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/checksum-implementation/prepare.md"
+[[steps]]
+id = "drain-separate"
+title = "Drain checksum tasks separately"
+needs = ["prepare"]
+condition = "{{drain_policy}} == separate"
+metadata = { "gc.run_target" = "{{implementation_target}}" }
+description_file = "../assets/workflows/implement/drain-separate.md"
+[steps.drain]
+context = "separate"
+formula = "checksum-work"
+member_access = "exclusive"
+[[steps]]
+id = "drain-same-session"
+title = "Drain checksum tasks in one session"
+needs = ["prepare"]
+condition = "{{drain_policy}} == same-session"
+metadata = { "gc.run_target" = "{{implementation_target}}" }
+description_file = "../assets/workflows/implement/drain-same-session.md"
+[steps.drain]
+context = "shared"
+formula = "checksum-work-item"
+on_item_failure = "skip_remaining"
+member_access = "exclusive"
+[steps.drain.item]
+single_lane = true
+[[steps]]
+id = "wait-for-drain"
+title = "Wait for checksum tasks"
+needs = ["drain-separate", "drain-same-session"]
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/implement/wait-for-drain.md"
+[[steps]]
+id = "integrate"
+title = "Integrate task branches and verify the combined work branch"
+needs = ["wait-for-drain"]
+metadata = { "gc.run_target" = "checksum-host.operator" }
+description_file = "../assets/workflows/checksum-integrate/integrate.md"
+
+[[steps]]
+id = "summarize"
+title = "Summarize retained checksum evidence"
+needs = ["integrate"]
+metadata = { "gc.run_target" = "checksum-host.operator", "gc.build.artifact_schema" = "gc.build.implementation-summary.v1", "gc.build.artifact_path_keys" = "gc.implementation.summary_path,gc.var.summary_path" }
+description_file = "../assets/workflows/implement/summarize.md"
+[steps.check]
+max_attempts = 3
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
+[[steps]]
+id = "publish"
+title = "Finish and optionally deliver checksum work"
+needs = ["summarize"]
+metadata = { "gc.run_target" = "checksum-host.finisher" }
+description_file = "../assets/workflows/checksum-build/publish.md"

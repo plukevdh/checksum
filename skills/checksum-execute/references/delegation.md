@@ -1,77 +1,47 @@
-# Subagent-Per-Task Execution
+# Delegation without a second scheduler
 
-Used when a native dispatch tool is in your tool list and `delegation` is `auto` or
-`subagent-per-task`. The value: each task gets a fresh context with no accumulated
-drift, and the primary agent stays cheap enough to act as a real reviewer between
-tasks.
+Follow the [workflow contract](../../checksum/references/workflow-contract.md).
+Standalone `auto` uses a native dispatch capability when actually available;
+otherwise execute inline. Host tools define mechanics, not methodology.
 
-## Per-host dispatch mechanics
+GasCity owns workflow scheduling and workspaces. A worker handles only its assigned
+task/phase, never queries global ready work and never autonomously dispatches
+other workflow tasks or creates nested phase runs. Host-invoked phase agents
+load their phase normally; they are not narrow helpers excluded by router/debug.
+Narrow helpers are permitted only when the host allows them, within the assigned
+scope, without autonomous claims, delivery or workspace allocation.
 
-Trust your actual tool list over this table when they disagree.
+## Self-contained helper dispatch
 
-- **Claude Code (Task tool):** dispatch each task as a Task with the prompt below.
-- **Codex (`spawn_agent`, requires `features.multi_agent = true`):**
-  - Spawn with `fork_turns: "none"` — the default copies your entire transcript
-    into the child, defeating the fresh-context purpose and paying for it.
-  - For fix rounds, message the existing child with `followup_task` instead of
-    spawning a fresh implementer.
-  - Don't short-poll `wait_agent`: while you have local work (verifying the
-    previous task), don't wait at all; when idle, wait in long bounded stretches.
-  - Set `model` and `reasoning_effort` explicitly on every spawn.
-
-## Dispatch prompt
-
-Claim the task file first (`status: claimed`, `claimed-by` set to the primary
-session's durable reference — e.g. `delta://thread/$DELTA_CURRENT_THREAD_ID` on
-Delta — plus ` agent=<child label>`; format table in the router's
-`references/lifecycle.md`) — the primary agent owns all frontmatter writes;
-subagents implement, they don't bookkeep. Then give the subagent everything — it has no conversation memory:
+The primary owns authoritative backend bookkeeping and claim before dispatch.
+Use a clean context and provide:
 
 ```
-You are implementing one task from an approved plan. Do exactly this task; nothing
-more. Do not commit, push, edit the task/plan files, or touch files outside the
-task's file list.
+Implement only this assigned scope. Do not commit, push, modify work records,
+dispatch workflow tasks, or edit outside the listed scope.
 
-## Global constraints
-<plan.md's Global Constraints section, verbatim>
-
-## Testing policy
-<the selected mode's rules from testing.md, verbatim>
-
-## Your task
-<the task file body, verbatim: files, interfaces, failure behavior, acceptance
-checks, steps>
-
-## Report format
-When done, report: files created/modified; each acceptance check command with its
-actual complete output; anything that deviated from the task and why.
+Context: repository/base/work branch, root/task IDs, backend/host/policy,
+method/preference revision, run authority and exclusions.
+Design and plan: complete relevant content and validated revisions.
+Constraints: verbatim global constraints.
+Task: files, interfaces, failure behavior, dependencies, checks, expected values.
+Testing: selected testing policy and defect observed-red/exception requirements.
+Diagnosis: complete evidence, confidence, risk and budgets used.
+Report: exact changed paths, commands with actual output, deviations, raw failures
+and unresolved risks. Stop at unexplained failure; do not try speculative fixes.
 ```
 
-## Primary-agent verification (non-negotiable)
+No model names or provider CLI commands are hard-coded here. Host routing records
+actual provider/model/context/provenance and respects repository access controls.
 
-After each subagent reports:
+## Primary verification
 
-1. Read the actual diff — not the report.
-2. Rerun the task's acceptance checks yourself; read complete output.
-3. Check conformance: files touched match the task list; interfaces match what the
-   plan says later tasks consume; no scope creep, placeholders, or weakened tests.
-4. Only then update the task file: checkboxes, Result section, `status: done`.
+Read the actual diff, rerun acceptance checks and inspect full output. Check files,
+interfaces, scope, placeholders and test honesty. Only then record Result and done.
+A helper's report is a claim, not evidence. Review failures get a focused repair;
+after two failed helper review rounds take over inline within remaining budget.
+Unknown failures go to the owning debug phase; plan defects route back to plan.
+Shared budgets survive helper replacement, phase handoff and resume.
 
-A subagent report of success is a claim. Verification is yours.
-
-## Failure handling
-
-- Review found problems → dispatch one focused fix subagent with the findings.
-- Same task fails review twice → take it over inline; something about the task
-  needs judgment the dispatch loop lacks.
-- An implementation or check fails for an unconfirmed reason → the child stops and
-  reports raw evidence; the primary invokes `checksum-debug`, updates the task, and
-  decides whether the plan remains valid before any further dispatch.
-- The fix reveals a plan defect → stop dispatching and return to the router.
-
-## Parallelism
-
-Dispatch concurrently any set of claimable tasks (status `pending`, all `depends`
-done) whose file lists don't overlap — claim each before dispatch so the
-frontmatter shows who has what — and verify each result separately before marking
-any of them done.
+Standalone may parallelize eligible disjoint tasks within the selected root;
+claim first and verify separately. Hosted concurrency is the scheduler's decision.

@@ -1,83 +1,54 @@
 ---
 name: checksum-design
-description: Write or revise a checksum design. Use when the checksum router selects the design phase - the design is absent, incomplete, or stale. Turns an idea into an approved design with observable success criteria.
+description: Write or revise a checksum design with observable success criteria when design is absent, incomplete or stale.
 ---
 
 # Checksum: Design
 
-Design is the highest-leverage phase. When an agent settles data shapes, contracts,
-failure behavior, and edge cases before writing code, the result is measurably better
-than when structure emerges from incremental implementation decisions. Spend the
-effort here, not on ceremony later.
+Load the shared [workflow contract](../checksum/references/workflow-contract.md)
+and [authorization](../checksum/references/authorization.md). Require the router's
+context, selected backend, authority and effective `design` preferences.
+Read existing code, conventions, relevant prior records and constraints first.
 
-Require preferences and a slug from the `checksum` router; if missing, run the router
-first. Honor every directive in the `## design` preferences section.
+## Understand and compare
 
-## Understand before proposing
+For defects, require the [diagnosis](../checksum-debug/references/diagnosis.md)
+or confirmed causal evidence: observed/expected, reproduction or blocker,
+confidence, fix boundary and regression condition. Carry complete risk/exception
+records; return unexplained failures to debug rather than guessing.
 
-- Explore the repository first: relevant code paths, existing patterns, recent
-  commits, prior `docs/checksum/` artifacts that touch the same area.
-- For a bug: require the `checksum-debug`
-  [diagnosis contract](../checksum-debug/references/diagnosis.md) first unless the
-  cause is already confirmed by causal evidence. In either case require observed
-  vs. expected behavior, a reproduction (or the exact reason it is blocked),
-  causal evidence, and a regression condition. Carry those facts plus confidence
-  and fix boundary into the design; do not make the design phase repeat or rewrite
-  an existing investigation. If neither a diagnosis nor confirmed evidence exists,
-  return to the router so it can invoke debug; do not diagnose inside design.
-- Ask clarifying questions **one at a time** as soon as they are found, for
-  anything that changes scope, behavior, risk, implementation choices,
-  verification, or external effects. Prefer multiple-choice when the options
-  are real. Record each answer and its source in the design, then revise affected
-  sections. Do not defer a consequential question to an “open questions” list,
-  copy it into a plan, or ask an implementer to decide. Use your judgment only
-  for details that do not change any of those.
-- If the request contains multiple independent subsystems, say so and decompose
-  first — one design per independently shippable piece.
+Resolve every question that changes scope, behavior, risk, implementation
+choices or external effects before design validation. Interactive asks the user
+one consequential question at a time as soon as it is found; do not defer it to
+an “open questions” list or ask an implementer to decide from a plan. Record the
+answer and its source in the design, then revise affected sections. PR-gated
+uses established requirements and evidence; an unanswered material question
+blocks and is returned verbatim to the user through the host, without creating
+a plan. Bounded non-material assumptions must be explicit decisions with
+evidence/authority and an impact-if-false, never disguised open questions.
+Decompose independent subsystems into independently shippable work when appropriate.
 
-## Propose approaches
+Compare two or three real approaches with tradeoffs, lead with the recommendation,
+and preserve the decisive rejected alternative. Prefer existing patterns and
+dependencies; strip unrequested features before designing them.
 
-Present 2–3 genuinely different approaches with trade-offs. Lead with your
-recommendation and why. YAGNI applies to every option: strip features nobody asked
-for before presenting, and prefer the standard library and installed dependencies
-over new ones.
+## Record and validate
 
-Present the design in sections sized to their complexity and check in after each
-section rather than dumping the whole design at once.
+Write the design to the chosen backend using the semantic content of
+[design-template](references/design-template.md) (or configured template):
 
-## Write the design
+- Goal, observable success criteria and explicit in/out scope.
+- Current state, exact constraints, chosen approach and rationale.
+- Responsibilities, interfaces/data shapes, data flow, edge cases and failure
+  behavior, including malformed/empty input, concurrency and partial failure.
+- Verification strategy, assumptions and full defect/risk records when needed.
 
-Write `<artifacts dir>/YYYY-MM-DD-<slug>/design.md` using the template at
-[references/design-template.md](references/design-template.md) (or the preferences
-`template:` override). Requirements that make the rest of the workflow function:
-
-- **Success criteria must be observable** — each one names the command, behavior,
-  or artifact that proves it. These become the plan's acceptance checks and the
-  finish phase's verification matrix. "Works correctly" is not a criterion;
-  "`GET /health` returns 200 with `{status: ok}` within 100ms" is.
-- **Edge cases and failure behavior are design content**, not implementation
-  details. Enumerate them here — malformed input, empty states, concurrency,
-  partial failure — because whatever is missing here will be missing from the code.
-- **Out of scope is explicit.** It is the only defense against scope creep during
-  execution.
-
-## Self-review, then the gate
-
-Re-read with fresh eyes and fix inline:
-
-1. Placeholders, TBDs, vague requirements
-2. Sections that contradict each other
-3. Requirements interpretable two ways — ask the user; record their answer
-4. Scope too large for one plan — propose decomposition
-5. Assumptions that contradict what the repository actually does
-
-A design with an unanswered consequential question remains Draft or Blocked and
-is ineligible for planning; approval cannot waive this gate. Bounded
-non-material assumptions must be explicit decisions with evidence and an
-impact-if-false, never disguised open questions.
-
-Then set `**Status:** Draft`, show the user where it lives, and ask them to
-review the question-complete design. **Stop and wait.** On an explicit yes, set
-`**Status:** Approved` and report back to the router. On requested changes,
-revise and ask again. Never start planning or implementation on an unapproved
-design or one with unanswered questions.
+Self-review for placeholders, contradictions, unanswered questions, ambiguous
+requirements, unsupported assumptions and overlarge scope. Every success
+criterion names its proof. A design with an unanswered question remains Draft
+or Blocked and is ineligible for plan; neither approval nor policy validation
+may waive this gate. Set Draft while editing. Interactive presents the
+question-complete record and waits for explicit approval of the exact revision,
+then records Approved. PR-gated records criteria, actor, policy and revision as
+Validated and continues without claiming approval.
+Hand off through the router/host contract; do not begin implementation here.

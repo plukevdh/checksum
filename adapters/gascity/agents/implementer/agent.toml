@@ -1,0 +1,3 @@
+description = "Checksum scoped task implementation and verification"
+scope = "rig"
+fallback = true

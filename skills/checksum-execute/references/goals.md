@@ -1,56 +1,23 @@
-# Using Goals Features
+# Optional standalone goals
 
-Both major hosts can keep a session working toward a completion condition without
-per-turn prompting. Checksum plans are written to plug into this: the plan's
-**Completion Condition** section is a ready-to-use goal.
+A host goal feature can continue toward the plan's measurable completion condition.
+It is optional, never a core dependency or an authority source.
 
-| Host | Feature | Notes |
-|---|---|---|
-| Claude Code | `/goal <condition>` | A small evaluator model checks the condition after each turn, judging **only from the transcript**. Cleared on success, judged-impossible, or user-facing error. |
-| Codex | `/goal <condition>` (`features.goals = true` in `config.toml`, or `codex features enable goals`) | Supports `/goal pause`, `resume`, `clear`. Suited to multi-hour autonomous runs. |
+For standalone execution, `goals: offer` (default) offers once for a long plan,
+`auto` sets a goal if permitted, and `never` skips. Under PR-gated execution do not
+insert a routine human wait for a goal; use an already permitted feature or skip.
+With GasCity do not install a competing goal loop: scheduler and resume belong
+to the host.
 
-## When to engage
-
-Follow the `goals` preference:
-
-- `offer` (default): after the plan is approved and execution is about to start,
-  if the plan has 3+ tasks or clearly spans many turns, offer once: present the
-  goal text and let the user set it (or decline).
-- `auto`: set the goal yourself when the host allows, then announce it.
-- `never`: skip.
-
-Goals pair naturally with **inline execution** (Codex). Under subagent-per-task
-execution the primary agent already drives continuation, so a goal adds less —
-offer it only for long plans.
-
-## Phrasing a goal that evaluators can judge
-
-The evaluator cannot run commands or read files; it sees only what lands in the
-conversation. So:
-
-1. **Measurable end state** — test results, exit codes, counts, file budgets.
-   Not "the refactor is done".
-2. **Named proof** — the exact commands whose output demonstrates the state
-   (the plan's Full Verification list).
-3. **Constraints that must hold** — scope boundaries ("no files outside `src/x/`"),
-   things that must not regress.
-4. **A bound** — optional turn or time clause for safety ("or stop after 20 turns").
-
-Template, filled from the plan:
+Use measurable results, exact proof commands, scope boundaries and a finite bound:
 
 ```
-/goal Every task in <plan path> is checked with its acceptance checks observed
-passing; <full verification commands> all exit 0 and their output is shown;
-no files outside <scope> modified. Stop after <N> turns if not met.
+Every task in <work record> has observed passing acceptance checks;
+<full verification commands> exit 0 with expected results;
+no changes outside <scope>. Stop after <N> attempts/turns if not met.
 ```
 
-During a goal run, surface the proof: run the verification commands and let their
-output land in the transcript at each checkpoint, and keep a short progress note
-(current task, what was verified, what remains).
-
-## Hard limits
-
-- Never include commit, push, publish, or any external effect in a goal condition —
-  those live behind the finish phase's user review gate.
-- A goal does not override stop-and-ask rules: destructive actions and scope growth
-  still pause for the user (pause the goal if needed).
+Surface proof in the transcript and retain it in the selected backend. Goals
+never authorize commit, push, PR, deployment or other effects; delivery remains
+finish's responsibility under the run's authorization. Budgets and blockers stop
+the goal and produce durable results, not repeated polling or automatic resets.
