@@ -16,8 +16,10 @@ A model should not evaluate itself: models recognize and favor their own output
 (self-preference bias), and executor and reviewer from the same model share blind
 spots. With `reviewer: auto` (default), take the first rung that works:
 
-1. **Cross-model** — the other host's CLI reviews this host's work: from Claude
-   Code, dispatch the review to `codex exec`; from Codex, to `claude -p`.
+1. **Cross-model** — another available host's CLI reviews this host's work. The
+   documented recipes are from Claude Code to `codex exec` and from Codex to
+   `claude -p`. Pi has no built-in cross-model CLI dispatch recipe; use this rung
+   only if a separately available CLI is configured.
 2. **Clean-context subagent** — same model, no conversation memory, no stake in
    the code. Removes context bias, not model bias; say so in the report.
 3. **Structured self-pass** — the checklist below, run cold after re-reading design

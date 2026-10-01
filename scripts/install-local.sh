@@ -1,40 +1,44 @@
 #!/bin/sh
-# Install the checksum plugin into local Claude Code and/or Codex.
+# Install checksum into Claude Code, Codex, and/or Pi.
 #
 # Usage:
-#   scripts/install-local.sh [--claude] [--codex] [--copy] [--uninstall]
+#   scripts/install-local.sh [--claude] [--codex] [--pi] [--copy] [--uninstall]
 #
 # With no host flag, installs to every host whose CLI/home is present.
-#   --copy       Codex: copy skill dirs instead of symlinking (symlink keeps
-#                the install live-updating as you edit this repo)
+#   --copy       Copy skill dirs instead of symlinking (Codex and Pi)
 #   --uninstall  Remove what this script installed
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 CODEX_SKILLS="$CODEX_HOME/skills"
+PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+PI_SKILLS="$PI_AGENT_DIR/skills"
 
 do_claude=false
 do_codex=false
+do_pi=false
 mode=install
-codex_link=true
+sym_link=true
 
 for arg in "$@"; do
   case "$arg" in
     --claude) do_claude=true ;;
     --codex) do_codex=true ;;
-    --copy) codex_link=false ;;
+    --pi) do_pi=true ;;
+    --copy) sym_link=false ;;
     --uninstall) mode=uninstall ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
 
 # Default: target whatever is present on this machine.
-if ! $do_claude && ! $do_codex; then
+if ! $do_claude && ! $do_codex && ! $do_pi; then
   command -v claude >/dev/null 2>&1 && do_claude=true
   [ -d "$CODEX_HOME" ] && do_codex=true
-  if ! $do_claude && ! $do_codex; then
-    echo "Neither the claude CLI nor $CODEX_HOME found. Nothing to do." >&2
+  command -v pi >/dev/null 2>&1 && do_pi=true
+  if ! $do_claude && ! $do_codex && ! $do_pi; then
+    echo "No supported host found (claude CLI, $CODEX_HOME, or pi CLI). Nothing to do." >&2
     exit 1
   fi
 fi
@@ -94,12 +98,12 @@ codex_install() {
     name=$(basename "$dir")
     dest="$CODEX_SKILLS/$name"
     rm -rf "$dest"
-    if $codex_link; then
+    if $sym_link; then
       ln -s "${dir%/}" "$dest"
     else
       cp -R "${dir%/}" "$dest"
     fi
-    echo "codex: $dest $($codex_link && echo '->' "${dir%/}" || echo '(copied)')"
+    echo "codex: $dest $($sym_link && echo '->' "${dir%/}" || echo '(copied)')"
   done
   echo "codex: done. Codex picks up skill changes automatically."
   echo "codex: for goals support, run once: codex features enable goals"
@@ -114,11 +118,39 @@ codex_uninstall() {
   done
 }
 
+pi_install() {
+  mkdir -p "$PI_SKILLS"
+  for dir in "$ROOT"/skills/*/; do
+    name=$(basename "$dir")
+    dest="$PI_SKILLS/$name"
+    rm -rf "$dest"
+    if $sym_link; then
+      ln -s "${dir%/}" "$dest"
+    else
+      cp -R "${dir%/}" "$dest"
+    fi
+    echo "pi: $dest $($sym_link && echo '->' "${dir%/}" || echo '(copied)')"
+  done
+  echo "pi: done. Restart Pi or run /reload to discover changes."
+}
+
+pi_uninstall() {
+  for dir in "$ROOT"/skills/*/; do
+    dest="$PI_SKILLS/$(basename "$dir")"
+    [ -e "$dest" ] || [ -L "$dest" ] || continue
+    rm -rf "$dest"
+    echo "pi: removed $dest"
+  done
+}
+
 status=0
 if $do_claude; then
   if [ "$mode" = install ]; then claude_install || status=1; else claude_uninstall || status=1; fi
 fi
 if $do_codex; then
   if [ "$mode" = install ]; then codex_install; else codex_uninstall; fi
+fi
+if $do_pi; then
+  if [ "$mode" = install ]; then pi_install || status=1; else pi_uninstall; fi
 fi
 exit $status

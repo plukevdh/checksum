@@ -4,8 +4,9 @@ A minimal, evidence-driven development workflow for coding agents:
 
 **design → plan → execute → finish**, with **debug when the cause is unknown**
 
-One plugin, two hosts (Claude Code and Codex), zero runtime dependencies — the
-entire framework is markdown. Built to start small and grow with your preferences.
+One shared skills library for Claude Code, Codex, and Pi, with zero runtime
+dependencies — the entire framework is markdown. Built to start small and grow
+with your preferences.
 
 ## Philosophy
 
@@ -40,18 +41,21 @@ entire framework is markdown. Built to start small and grow with your preference
 
 ## Install
 
-### From a local clone (both hosts)
+### From a local clone
 
 ```bash
 git clone https://github.com/plukevdh/checksum && cd checksum
-scripts/install-local.sh          # targets every host present; or --claude / --codex
+scripts/install-local.sh          # targets every host present; or --claude / --codex / --pi
 ```
 
 For Claude Code this registers the repo as a local marketplace and installs the
 plugin (`claude plugin marketplace add . && claude plugin install checksum@checksum`).
 For Codex it symlinks `skills/*` into `~/.codex/skills/`, so edits to the clone are
-live immediately (use `--copy` for a frozen copy). `--uninstall` reverses either.
-To use goals during execution, enable them once: `codex features enable goals`.
+live immediately (use `--copy` for a frozen copy). For Pi it symlinks `skills/*`
+into `$PI_CODING_AGENT_DIR/skills/` (default `~/.pi/agent/skills/`). `--uninstall`
+reverses any selected host install. To use goals during execution, enable them once:
+`codex features enable goals`. The Pi local installer does not manage
+package-manager installs; use `pi remove` for those.
 
 > **Enterprise-managed Claude Code:** managed policies can restrict marketplace
 > sources to an allowlist. If registration fails with a policy error, register the
@@ -65,6 +69,35 @@ To use goals during execution, enable them once: `codex features enable goals`.
 /plugin marketplace add plukevdh/checksum
 /plugin install checksum@checksum
 ```
+
+### Pi, via its package manager
+
+Pi can install this repository as a package directly from Git; it discovers the
+existing `skills/` directory, so no Pi extension or duplicated skill files are
+needed:
+
+```bash
+pi install git:github.com/plukevdh/checksum
+```
+
+In Pi, invoke the router explicitly with `/skill:checksum <what you want to build>`
+(or let Pi load it when relevant). Use `/skill:checksum-debug` for direct diagnosis.
+Manage the package with `pi list`, `pi update git:github.com/plukevdh/checksum`, and
+`pi remove git:github.com/plukevdh/checksum`. Package-manager installs and the local
+installer are separate; uninstall them using their corresponding mechanism.
+
+Pi project-local package settings/resources are trust-gated. Review the source and
+grant project trust when prompted. A personal package install avoids project-local
+trust configuration. Skills are instructions, not executable Pi extensions.
+
+Pi does not include a native `/goal` or built-in cross-model CLI dispatch for
+optional workflow features. Checksum runs tasks inline,
+uses evidence-based self-review when no clean-context subagent is available, and
+does not attempt to invoke an unsupported `/goal`. If your Pi setup exposes a
+subagent/dispatch tool, Checksum adapts to the capability actually present.
+
+Verify installation in Pi with `/skill:checksum` (or `/skill:checksum-debug`) and
+confirm Pi loads the six skills. Use `/reload` after manual skill changes.
 
 ### Codex, step by step
 
@@ -100,6 +133,7 @@ Invoke the router and describe the change:
 - Claude Code: `/checksum:checksum <what you want to build>`  (or just describe the
   task — the skills activate when relevant)
 - Codex: `$checksum <what you want to build>`
+- Pi: `/skill:checksum <what you want to build>`
 
 The router sends unexplained failures to debug before entering the build loop,
 classifies the resulting change (spike / light / full), routes through the phases,
@@ -120,10 +154,10 @@ integrated whole, ships the condensed plan record, and clears the working papers
 Anything incomplete is reported loudly — every gap with its exact resume action —
 and finalize refuses to proceed past it.
 
-On a bug or unexpected failure, invoke `$checksum-debug` in Codex or
-`/checksum:checksum-debug` in Claude Code directly, or let the checksum router select
-it. Diagnosis returns to the same user-chosen light/full flow; it does not force a
-written plan.
+On a bug or unexpected failure, invoke `$checksum-debug` in Codex,
+`/checksum:checksum-debug` in Claude Code, or `/skill:checksum-debug` in Pi directly;
+you can also let the checksum router select it. Diagnosis returns to the same
+user-chosen light/full flow; it does not force a written plan.
 
 Light-weight tasks run the same phases and gates with design and plan presented in
 chat instead of files. Artifact files are never committed unless you ask.
@@ -170,6 +204,7 @@ skills/
 .claude-plugin/        Claude Code manifest + marketplace
 .codex-plugin/         Codex manifest
 .agents/plugins/       Codex repo marketplace
+                       Pi uses skills/ directly as a native package
 ```
 
 ## Provenance

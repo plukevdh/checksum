@@ -75,17 +75,20 @@ contradict a project-level one.
   `/goal` completion condition when starting execution on a host that supports goals.
 - `delegation: auto | inline | subagent-per-task` — default `auto`, which follows
   actual capability: fresh subagent per task when a native dispatch tool is in the
-  current tool list (Claude Code's Task tool; Codex's `spawn_agent` when
-  `features.multi_agent` is enabled), direct inline execution otherwise. Set
-  explicitly to override on any host.
+  current tool list (for example, Claude Code's Task tool or Codex's `spawn_agent`
+  when `features.multi_agent` is enabled), direct inline execution otherwise. Set
+  explicitly to override on any host; do not assume a host has dispatch based on
+  its name.
 - `reviewer: auto | cross-model | subagent | self` — default `auto`: best available
   rung of the ladder (cross-model → clean-context subagent → structured self-pass).
   Adversarial review runs at the end of execution, once per delivery unit.
-  Cross-model dispatches the review to the other host's CLI (`codex exec` /
-  `claude -p`) so no model evaluates its own work; it needs that CLI installed and
-  authenticated, and spends its tokens.
-- `reviewer-model: codex=<name>, claude=<name>` — model each CLI should review
-  with. Default: the strongest tier the CLI offers. Reviews always run at the
+  Cross-model dispatches the review to another available agent CLI (currently
+  documented recipes: `codex exec` / `claude -p`) so no model evaluates its own
+  work; it needs that CLI installed and authenticated, and spends its tokens. Pi is
+  a host, not a corresponding reviewer agent; the user chooses the agent running in
+  Pi. If no supported separate reviewer CLI is available, fall down the ladder.
+- `reviewer-model: codex=<name>, claude=<name>` — model each configured CLI should
+  review with. Default: the strongest tier the CLI offers. Reviews always run at the
   highest reasoning effort the CLI exposes; pin exact names here as tiers evolve.
 - `review-depth: standard | deep` — default `standard`; `deep` additionally asks
   the reviewer to trace every design edge case to a test and inspect test honesty

@@ -1,13 +1,14 @@
 # Using Goals Features
 
-Both major hosts can keep a session working toward a completion condition without
+Some hosts can keep a session working toward a completion condition without
 per-turn prompting. Checksum plans are written to plug into this: the plan's
-**Completion Condition** section is a ready-to-use goal.
+**Completion Condition** section is a ready-to-use goal when the host supports one.
 
 | Host | Feature | Notes |
 |---|---|---|
 | Claude Code | `/goal <condition>` | A small evaluator model checks the condition after each turn, judging **only from the transcript**. Cleared on success, judged-impossible, or user-facing error. |
 | Codex | `/goal <condition>` (`features.goals = true` in `config.toml`, or `codex features enable goals`) | Supports `/goal pause`, `resume`, `clear`. Suited to multi-hour autonomous runs. |
+| Pi | No native goals feature is assumed | Continue inline and surface progress/checkpoint evidence; do not invent `/goal` support. |
 
 ## When to engage
 
@@ -19,9 +20,10 @@ Follow the `goals` preference:
 - `auto`: set the goal yourself when the host allows, then announce it.
 - `never`: skip.
 
-Goals pair naturally with **inline execution** (Codex). Under subagent-per-task
-execution the primary agent already drives continuation, so a goal adds less —
-offer it only for long plans.
+Goals pair naturally with **inline execution**. Under subagent-per-task execution
+the primary agent already drives continuation, so a goal adds less — offer it only
+for long plans. If the host has no goals feature (including Pi), continue inline
+without setting a goal.
 
 ## Phrasing a goal that evaluators can judge
 

@@ -31,7 +31,8 @@ With `delegation: auto` (the default), the deciding question is whether a native
 subagent dispatch tool is **in your current tool list** — not which brand of host
 you are on. Claude Code ships one always (Task); Codex has one only when the user
 enabled `features.multi_agent` (`spawn_agent` et al.); enabling it is the user
-opting into multi-agent execution, so honor it.
+opting into multi-agent execution, so honor it. Other hosts (e.g. Pi) may expose
+dispatch through their tools or extensions.
 
 - **Dispatch tool present** → **subagent-per-task**. Each task runs in a fresh
   context; the plan was written for a zero-context implementer, so hand it over

@@ -7,7 +7,9 @@ tasks.
 
 ## Per-host dispatch mechanics
 
-Trust your actual tool list over this table when they disagree.
+Trust your actual tool list over this table when they disagree. Pi has no built-in
+dispatch assumption; if a Pi extension or other host exposes a suitable dispatch
+tool, follow that tool's documented invocation and use the prompt below.
 
 - **Claude Code (Task tool):** dispatch each task as a Task with the prompt below.
 - **Codex (`spawn_agent`, requires `features.multi_agent = true`):**
